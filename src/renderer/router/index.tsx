@@ -1,11 +1,18 @@
 // src/router/index.jsx
-import { createBrowserRouter } from 'react-router-dom'
+import Layout from '@renderer/layout'
 import Home from '@renderer/views/Home'
+import { createBrowserRouter } from 'react-router-dom'
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Home />
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <Home />
+      }
+    ]
   }
 ])
 

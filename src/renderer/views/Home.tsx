@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
-import { Button } from 'antd'
 import Settings from '@renderer/components/Settings'
+import { Button } from 'antd'
 const Home: React.FC = () => {
   const [test, setTest] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)

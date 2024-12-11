@@ -1,37 +1,39 @@
-import { useState } from 'react'
-import { Modal } from 'antd'
+import { Modal, Tabs } from 'antd'
 import { useTranslation } from 'react-i18next'
+import General from './general'
 export default ({
   isModalOpen,
-  onOk,
   onCancel
 }: {
   isModalOpen: boolean // modal是否打开
-  onOk?: () => void
-  onCancel?: () => void
+  onCancel: () => void
 }) => {
   const { t } = useTranslation()
-  const [confirmLoading, setConfirmLoading] = useState(false)
-  const handleOk = () => {
-    setConfirmLoading(true)
-    if (onOk) {
-      onOk()
-    }
-  }
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel()
-    }
-  }
+
   return (
     <Modal
       maskClosable={false}
       title={t('setting.title')}
-      okText={t('setting.save')}
       open={isModalOpen}
-      onOk={handleOk}
-      onCancel={handleCancel}
-      confirmLoading={confirmLoading}
-    ></Modal>
+      onCancel={onCancel}
+      width="700px"
+      footer={null}
+    >
+      <Tabs
+        defaultActiveKey="general"
+        tabPosition="left"
+        items={[
+          {
+            label: t('setting.tabs.general'),
+            key: 'general',
+            children: <General />
+          },
+          {
+            label: t('setting.tabs.plugInMarket'),
+            key: 'plugInMarket'
+          }
+        ]}
+      />
+    </Modal>
   )
 }

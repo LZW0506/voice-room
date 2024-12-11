@@ -6,6 +6,7 @@ import pluginReact from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
+import unocss from '@unocss/eslint-config/flat'
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   { ignores: [] },
@@ -17,7 +18,8 @@ export default [
       ...tseslint.configs.recommended,
       pluginReact.configs.flat.recommended,
       eslintConfigPrettier,
-      eslintPluginPrettierRecommended
+      eslintPluginPrettierRecommended,
+      '@unocss'
     ],
     plugins: {
       'react-hooks': reactHooks,

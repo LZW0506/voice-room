@@ -1,12 +1,19 @@
-import { app, BrowserWindow } from 'electron'
-import path from 'path'
 import ipc from '@main/ipc'
+import { app, BrowserWindow, screen } from 'electron'
+import path from 'path'
 const createMainWindow = () => {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    show: true,
+    width: Math.ceil(width * 0.75), // 向上取整,不支持小数
+    height: Math.ceil(height * 0.85),
+    minWidth: Math.ceil(width * 0.5),
+    minHeight: Math.ceil(height * 0.5),
+    frame: false,
+    title: 'DBin',
+    titleBarStyle: 'hidden',
+    autoHideMenuBar: true,
+    trafficLightPosition: { x: 10, y: 10 },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
