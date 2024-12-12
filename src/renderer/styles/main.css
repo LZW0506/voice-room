@@ -6,12 +6,16 @@
 
 html,
 body {
-  @apply m-0 h-full overflow-hidden;
+  @apply m-0 h-[100vh] overflow-hidden;
 }
 #root {
   @apply h-full;
 }
 .drap-window {
-  -webkit-app-region: drag;
-  -webkit-user-select: none;
+  user-select: none;
+  app-region: drag;
+}
+
+.no-drap {
+  app-region: no-drag;
 }

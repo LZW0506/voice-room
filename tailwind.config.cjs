@@ -6,11 +6,14 @@ module.exports = {
     colors: {
       base: 'var(--base)',
       primary: 'var(--primary)',
-      black: 'var(--text-base)'
+      black: 'var(--text-base)',
+      border: '#dee2e6',
+      icon: '#6c757d'
     },
     extend: {
       height: {
-        'content-full': 'calc(100vh - 2.25rem)'
+        'header-full': 'var(--header-height)',
+        'content-full': 'calc(100% - var(--header-height))'
       }
     }
   },

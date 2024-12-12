@@ -6,10 +6,14 @@ import dayjs from 'dayjs'
 export interface SystemState {
   lang: string
   antd: Locale
+  isMax: boolean
+  platform: string
 }
 const initialState: SystemState = {
   lang: 'zh-CN',
-  antd: antdZhCn
+  antd: antdZhCn,
+  isMax: false,
+  platform: ''
 }
 
 // 创建一个 Slice
@@ -23,11 +27,18 @@ export const systemSlice = createSlice({
       dayjs.locale(action.payload.date)
       state.lang = action.payload.key
       state.antd = action.payload.antd
+    },
+    setMax(state, action) {
+      state.isMax = action.payload
+    },
+    setPlatform(state, action) {
+      state.platform = action.payload
     }
   }
 })
+
 // 导出方法
-export const { setLang } = systemSlice.actions
+export const { setLang, setMax, setPlatform } = systemSlice.actions
 
 // 默认导出
 export default systemSlice.reducer

@@ -9,12 +9,20 @@ export default (win: BrowserWindow) => {
     win.maximize()
   })
   // 还原窗口
-  ipcMain.on('windows:restore', function () {
-    win.restore()
+  ipcMain.on('windows:unmaximize', function () {
+    win.unmaximize()
+  })
+  // 还原窗口
+  ipcMain.handle('windows:getMax', function () {
+    return win.isMaximized()
   })
   // 关闭窗口
   ipcMain.on('windows:close', () => {
     app.quit()
+  })
+  // 获取当前系统
+  ipcMain.handle('system:platform', () => {
+    return process.platform
   })
   // 监听窗口最大化
   win.on('maximize', () => {

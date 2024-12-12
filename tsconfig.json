@@ -15,6 +15,7 @@
     "paths": {
       "@renderer/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"]
-    }
+    },
+    "types": ["vite-plugin-svg-icons/client"]
   }
 }
