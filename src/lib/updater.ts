@@ -19,5 +19,5 @@ export async function checkForAppUpdate(): Promise<void> {
   }
 
   await update.downloadAndInstall()
-  await relaunch()
+  if (!navigator.userAgent.toLowerCase().includes('windows')) await relaunch()
 }
