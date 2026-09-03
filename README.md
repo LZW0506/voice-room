@@ -29,6 +29,5 @@ git push origin v0.1.0
 仓库需要配置以下 Actions Secrets：
 
 - `TAURI_SIGNING_PRIVATE_KEY`：Tauri 更新签名私钥
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`：签名私钥密码，当前密钥没有密码时保存为空字符串
 
 客户端启动后会读取 GitHub 最新 Release 的 `latest.json`，检测到新版本时询问用户并自动安装
