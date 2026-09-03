@@ -144,11 +144,20 @@ export async function getMicrophonePermissionState(): Promise<MicrophonePermissi
   }
 }
 
-/** 通过浏览器权限提示申请麦克风访问并立即释放测试媒体流 */
-export async function requestMicrophonePermission(): Promise<void> {
+/** 通过浏览器或系统权限提示申请麦克风访问并返回当前默认设备信息 */
+export async function requestMicrophonePermission(): Promise<AudioInputDevice | null> {
   if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前环境不支持访问麦克风')
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  const track = stream.getAudioTracks()[0]
+  const settings = track?.getSettings()
+  const device = track?.label ? {
+    deviceId: settings?.deviceId || 'default',
+    label: track.label,
+    groupId: settings?.groupId || '',
+    hasLabel: true,
+  } : null
   stream.getTracks().forEach((track) => track.stop())
+  return device
 }
 
 /** 判断当前浏览器是否支持原生音频输出设备选择器 */

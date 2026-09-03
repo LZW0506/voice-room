@@ -61,7 +61,18 @@ function getDefaultAudioDeviceName(devices: Array<AudioInputDevice | AudioOutput
   const defaultDevice = devices.find((device) => device.deviceId === 'default')
   const relatedDevice = devices.find((device) => device.deviceId !== 'default' && device.hasLabel && device.groupId && device.groupId === defaultDevice?.groupId)
   const deviceName = relatedDevice?.label || (defaultDevice?.hasLabel ? defaultDevice.label : '')
-  return deviceName.replace(/^(default|默认)\s*(?:-|—|：|:)\s*/i, '').trim() || '名称将在授权后显示'
+  return deviceName.replace(/^(default|默认)\s*(?:-|—|：|:)\s*/i, '').trim() || '当前默认设备'
+}
+
+/** 将权限请求返回的真实麦克风名称回填到系统默认设备 */
+function mergeDefaultInputDevice(devices: AudioInputDevice[], permissionDevice: AudioInputDevice | null): AudioInputDevice[] {
+  if (!permissionDevice?.label) return devices
+  const hasDefaultDevice = devices.some((device) => device.deviceId === 'default')
+  const updatedDevices = devices.map((device) => device.deviceId === permissionDevice.deviceId || device.deviceId === 'default'
+    ? { ...device, label: permissionDevice.label, groupId: device.groupId || permissionDevice.groupId, hasLabel: true }
+    : device)
+  if (hasDefaultDevice) return updatedDevices
+  return [{ ...permissionDevice, deviceId: 'default' }, ...updatedDevices]
 }
 
 /** 语音聊天室主页面 */
@@ -107,10 +118,10 @@ export default function App() {
     setError('')
     setIsLoadingDevices(true)
     try {
-      await requestMicrophonePermission()
+      const permissionDevice = await requestMicrophonePermission()
       setMicrophonePermission('granted')
       const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
-      setAudioInputDevices(inputs)
+      setAudioInputDevices(mergeDefaultInputDevice(inputs, permissionDevice))
       setAudioOutputDevices(outputs)
     } catch (permissionError) {
       setMicrophonePermission(await getMicrophonePermissionState())
