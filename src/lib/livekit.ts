@@ -1,8 +1,12 @@
 import { isTauri } from '@tauri-apps/api/core'
 import { LocalAudioTrack, Room, RoomEvent } from 'livekit-client'
 
-const TOKEN_URL = import.meta.env.VITE_TOKEN_URL || 'http://localhost:8787/api/token'
-const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880'
+const TOKEN_URL = isTauri()
+  ? (import.meta.env.VITE_TAURI_TOKEN_URL || 'http://82.157.174.249:8787/api/token')
+  : (import.meta.env.VITE_TOKEN_URL || '/api/token')
+const LIVEKIT_URL = isTauri()
+  ? (import.meta.env.VITE_TAURI_LIVEKIT_URL || 'ws://82.157.174.249:7880')
+  : (import.meta.env.VITE_LIVEKIT_URL || `wss://${window.location.host}`)
 
 /** Token 服务请求参数 */
 export interface TokenRequest {
@@ -85,14 +89,16 @@ export async function fetchToken(request: TokenRequest): Promise<TokenResponse> 
 export async function createProcessedMicrophone(
   inputVolume: number,
   noiseSuppression: boolean,
+  echoCancellation: boolean,
+  autoGainControl: boolean,
   inputDeviceId: string,
 ): Promise<MicrophoneResources> {
   const rawStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       deviceId: inputDeviceId === 'default' ? undefined : { exact: inputDeviceId },
-      echoCancellation: true,
+      echoCancellation,
       noiseSuppression,
-      autoGainControl: true,
+      autoGainControl,
       channelCount: 1,
     },
   })
@@ -227,5 +233,31 @@ export function createRoom(onDisconnected: () => void): Room {
 
 /** 连接到 LiveKit 房间 */
 export async function connectRoom(room: Room, credentials: TokenResponse): Promise<void> {
-  await room.connect(credentials.url || LIVEKIT_URL, credentials.token)
+  await room.connect(isTauri() ? (credentials.url || LIVEKIT_URL) : LIVEKIT_URL, credentials.token)
+}
+
+/** 读取 LiveKit 当前 WebRTC 连接的往返延迟
+ *
+ * 返回值单位为毫秒，未建立可用连接统计时返回 null
+ */
+export async function getRoomLatency(room: Room): Promise<number | null> {
+  const reports = await Promise.all([
+    room.engine.pcManager?.publisher.getStats(),
+    room.engine.pcManager?.subscriber?.getStats(),
+  ])
+  const selectedRoundTripTimes: number[] = []
+  const roundTripTimes: number[] = []
+
+  reports.forEach((report) => {
+    report?.forEach((stat) => {
+      if (stat.type !== 'candidate-pair' || stat.state !== 'succeeded' || typeof stat.currentRoundTripTime !== 'number') return
+      const roundTripTime = stat.currentRoundTripTime * 1000
+      roundTripTimes.push(roundTripTime)
+      if (stat.selected || stat.nominated) selectedRoundTripTimes.push(roundTripTime)
+    })
+  })
+
+  const availableTimes = selectedRoundTripTimes.length > 0 ? selectedRoundTripTimes : roundTripTimes
+  if (availableTimes.length === 0) return null
+  return Math.round(Math.min(...availableTimes))
 }

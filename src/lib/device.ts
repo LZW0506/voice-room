@@ -1,7 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-
-const NAME_KEY = 'voice-room.display-name'
-const DEVICE_KEY = 'voice-room.device-identity'
+import { useClientStore } from '../stores/client'
 
 /** 设备信息实体 */
 export interface DeviceProfile {
@@ -16,10 +14,10 @@ async function readMachineCode(): Promise<string> {
   try {
     return await invoke<string>('machine_code')
   } catch {
-    const cached = localStorage.getItem(DEVICE_KEY)
+    const cached = useClientStore.getState().browserDeviceIdentity
     if (cached) return cached
     const generated = crypto.randomUUID()
-    localStorage.setItem(DEVICE_KEY, generated)
+    useClientStore.getState().setBrowserDeviceIdentity(generated)
     return generated
   }
 }
@@ -43,11 +41,13 @@ function createDefaultName(identity: string): string {
 /** 获取本机在聊天室中的身份与昵称 */
 export async function getDeviceProfile(): Promise<DeviceProfile> {
   const identity = await createIdentity(await readMachineCode())
-  const savedName = localStorage.getItem(NAME_KEY)?.trim()
-  return { identity, displayName: savedName || createDefaultName(identity) }
+  const store = useClientStore.getState()
+  const displayName = store.displayName || createDefaultName(identity)
+  if (!store.displayName) store.setDisplayName(displayName)
+  return { identity, displayName }
 }
 
 /** 保存用户修改后的昵称 */
 export function saveDisplayName(displayName: string): void {
-  localStorage.setItem(NAME_KEY, displayName.trim())
+  useClientStore.getState().setDisplayName(displayName)
 }

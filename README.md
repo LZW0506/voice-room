@@ -7,13 +7,15 @@ npm install
 npm run tauri dev
 ```
 
-默认访问位于 `http://localhost:8787` 的 Token 服务和位于 `ws://localhost:7880` 的 LiveKit 服务
+网页端使用 1Panel 的 HTTPS 入口 `https://82.157.174.249:8004`，Tauri 客户端使用服务器的 HTTP 与 WebSocket 端口连接
 
 跨机器运行时，可以设置 `VITE_TOKEN_URL` 和 `VITE_LIVEKIT_URL`
 
 ```bash
-VITE_TOKEN_URL=http://服务器地址:8787/api/token \
-VITE_LIVEKIT_URL=ws://服务器地址:7880 \
+VITE_TOKEN_URL=/api/token \
+VITE_LIVEKIT_URL=wss://服务器地址:8004 \
+VITE_TAURI_TOKEN_URL=http://服务器地址:8787/api/token \
+VITE_TAURI_LIVEKIT_URL=ws://服务器地址:7880 \
 npm run tauri dev
 ```
 

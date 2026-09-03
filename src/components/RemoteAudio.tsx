@@ -16,20 +16,20 @@ interface RemoteAudioProps {
 /** 将远端音频轨道挂载到隐藏 audio 元素并控制输出音量 */
 export function RemoteAudio({ track, volume, outputDeviceId, onOutputError }: RemoteAudioProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const normalizedVolume = Math.max(0, Math.min(100, volume)) / 100
 
   useEffect(() => {
     const element = audioRef.current
     if (!element) return
     track.attach(element)
-    element.volume = volume / 100
     return () => {
       track.detach(element)
     }
   }, [track])
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume / 100
-  }, [volume])
+    if (audioRef.current) audioRef.current.volume = normalizedVolume
+  }, [normalizedVolume])
 
   useEffect(() => {
     const element = audioRef.current
