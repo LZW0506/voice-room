@@ -15,10 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - macos-latest
-          - ubuntu-22.04
-          - windows-latest
+        include:
+          - platform: macos-latest
+            bundles: dmg
+          - platform: ubuntu-22.04
+            bundles: appimage
+          - platform: windows-latest
+            bundles: nsis
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -49,6 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
+          args: --bundles ${{ matrix.bundles }}
           tagName: v__VERSION__
           releaseName: 声屿 v__VERSION__
           releaseBody: 下载与你的系统对应的安装包，已安装版本会自动检查后续更新
