@@ -1,3 +1,4 @@
+import { isTauri } from '@tauri-apps/api/core'
 import { LocalAudioTrack, Room, RoomEvent } from 'livekit-client'
 
 const TOKEN_URL = import.meta.env.VITE_TOKEN_URL || 'http://localhost:8787/api/token'
@@ -169,10 +170,24 @@ export async function selectAudioOutputDevice(): Promise<AudioOutputDevice> {
   }
 }
 
+/** 根据桌面系统或浏览器环境返回麦克风授权指引 */
+export function getMicrophonePermissionGuide(): string {
+  if (!isTauri()) return '麦克风权限未开启，请在浏览器的网站设置中允许后刷新'
+
+  const userAgent = navigator.userAgent.toLowerCase()
+  if (userAgent.includes('windows')) {
+    return '麦克风权限未开启，请在 Windows 设置的“隐私和安全性 → 麦克风”中允许桌面应用访问麦克风'
+  }
+  if (userAgent.includes('macintosh') || userAgent.includes('mac os')) {
+    return '麦克风权限未开启，请在 macOS 系统设置的“隐私与安全性 → 麦克风”中允许声屿访问'
+  }
+  return '麦克风权限未开启，请在系统隐私设置中允许声屿访问麦克风'
+}
+
 /** 将浏览器麦克风异常转换为明确的中文提示 */
 export function getMicrophoneErrorMessage(error: unknown): string {
   if (!(error instanceof DOMException)) return error instanceof Error ? error.message : '无法打开麦克风'
-  if (error.name === 'NotAllowedError') return '麦克风权限未开启，请允许浏览器访问麦克风；若未出现提示，请在网站设置或系统隐私设置中手动允许'
+  if (error.name === 'NotAllowedError') return getMicrophonePermissionGuide()
   if (error.name === 'NotFoundError') return '未检测到可用的麦克风，请在音频设置中选择输入设备'
   if (error.name === 'NotReadableError' || error.name === 'AbortError') return '所选麦克风当前不可用，可能正被其他应用占用'
   if (error.name === 'OverconstrainedError') return '所选麦克风已断开，请在音频设置中重新选择'

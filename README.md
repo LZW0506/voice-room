@@ -1,6 +1,6 @@
 # 声屿前端
 
-这是独立的 React/Vite + Tauri 2 桌面客户端项目
+这是独立的 React/Vite + Tauri 2 桌面客户端项目，支持 macOS 与 Windows
 
 ```bash
 npm install
@@ -31,3 +31,5 @@ git push origin v0.1.0
 - `TAURI_SIGNING_PRIVATE_KEY`：Tauri 更新签名私钥
 
 客户端启动后会读取 GitHub 最新 Release 的 `latest.json`，检测到新版本时询问用户并自动安装
+
+Windows 使用 WebView2 运行界面，首次使用麦克风时由系统请求权限；更新安装使用被动模式并显示安装进度
