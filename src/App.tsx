@@ -86,6 +86,7 @@ export default function App() {
   const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.Disconnected)
   const roomRef = useRef<Room | null>(null)
   const microphoneRef = useRef<MicrophoneResources | null>(null)
+  const hasRequestedAudioAccessRef = useRef(false)
 
   /** 刷新系统中可供浏览器使用的输入与输出设备 */
   const refreshAudioDevices = useCallback(async () => {
@@ -100,6 +101,25 @@ export default function App() {
       setIsLoadingDevices(false)
     }
   }, [])
+
+  /** 首次启动时请求麦克风权限并读取全部音频设备 */
+  const requestAudioAccess = useCallback(async () => {
+    setError('')
+    setIsLoadingDevices(true)
+    try {
+      await requestMicrophonePermission()
+      setMicrophonePermission('granted')
+      const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
+      setAudioInputDevices(inputs)
+      setAudioOutputDevices(outputs)
+    } catch (permissionError) {
+      setMicrophonePermission(await getMicrophonePermissionState())
+      setError(getMicrophoneErrorMessage(permissionError))
+      await refreshAudioDevices()
+    } finally {
+      setIsLoadingDevices(false)
+    }
+  }, [refreshAudioDevices])
 
   useEffect(() => {
     getDeviceProfile().then((profile) => {
@@ -116,11 +136,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    void getMicrophonePermissionState().then(setMicrophonePermission)
-    void refreshAudioDevices()
+    if (!hasRequestedAudioAccessRef.current) {
+      hasRequestedAudioAccessRef.current = true
+      void requestAudioAccess()
+    }
     navigator.mediaDevices?.addEventListener('devicechange', refreshAudioDevices)
     return () => navigator.mediaDevices?.removeEventListener('devicechange', refreshAudioDevices)
-  }, [refreshAudioDevices])
+  }, [refreshAudioDevices, requestAudioAccess])
 
   /** 同步房间内参与者与远端音频轨道到 React 状态 */
   const syncRoomState = useCallback((room: Room) => {
@@ -244,24 +266,6 @@ export default function App() {
     void refreshAudioDevices()
   }
 
-  /** 请求麦克风权限并在用户选择后重新读取全部音频设备 */
-  const requestAudioAccess = async () => {
-    setError('')
-    setIsLoadingDevices(true)
-    try {
-      await requestMicrophonePermission()
-      setMicrophonePermission('granted')
-      const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
-      setAudioInputDevices(inputs)
-      setAudioOutputDevices(outputs)
-    } catch (permissionError) {
-      setMicrophonePermission(await getMicrophonePermissionState())
-      setError(getMicrophoneErrorMessage(permissionError))
-    } finally {
-      setIsLoadingDevices(false)
-    }
-  }
-
   /** 打开浏览器输出设备选择器并保存用户授权的设备 */
   const chooseAudioOutput = async () => {
     setError('')
@@ -323,7 +327,7 @@ export default function App() {
       {remoteAudioTracks.map((track) => <RemoteAudio key={track.sid} track={track} volume={preferences.outputVolume} outputDeviceId={preferences.outputDeviceId} onOutputError={handleOutputError} />)}
       {error && <div className="toast-error">{error}<button onClick={() => setError('')}><X size={15} /></button></div>}
       {isNameEditing && <div className="modal-backdrop" onClick={() => setIsNameEditing(false)}><div className="modal small-modal" onClick={(event) => event.stopPropagation()}><div className="modal-heading"><h3>修改昵称</h3><button className="close-button" onClick={() => setIsNameEditing(false)}><X size={18} /></button></div><input className="text-input" value={nameDraft} maxLength={24} autoFocus onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && void commitName()} /><button className="primary-button full-button" onClick={() => void commitName()}>保存昵称</button></div></div>}
-      {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}><div className="modal" onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><div className="eyebrow">AUDIO SETTINGS</div><h3>音频设置</h3></div><button className="close-button" onClick={() => setShowSettings(false)}><X size={18} /></button></div><div className="device-field"><div className="device-field-heading"><label htmlFor="audio-input-device"><Mic size={17} /> 麦克风设备</label><button type="button" onClick={() => hasMicrophoneDeviceAccess ? void refreshAudioDevices() : void requestAudioAccess()} disabled={isLoadingDevices}><RefreshCw size={14} className={isLoadingDevices ? 'spinning' : ''} />{hasMicrophoneDeviceAccess ? '刷新' : '获取权限'}</button></div><select id="audio-input-device" value={preferences.inputDeviceId} onChange={(event) => changePreferences({ inputDeviceId: event.target.value })}><option value="default">系统默认麦克风（{defaultInputLabel}）</option>{audioInputDevices.filter((input) => input.deviceId !== 'default').map((input) => <option key={input.deviceId} value={input.deviceId}>{input.label}</option>)}</select>{!hasMicrophoneDeviceAccess && <button type="button" className="device-permission-button" onClick={() => void requestAudioAccess()} disabled={isLoadingDevices}><Mic size={16} />{isLoadingDevices ? '正在等待授权…' : '允许访问麦克风并读取设备'}</button>}<small>{microphonePermission === 'denied' ? '麦克风权限已被阻止，请点击上方按钮；若系统不再询问，请在系统设置的隐私与安全性中允许声屿访问麦克风' : hasMicrophoneDeviceAccess ? '可直接选择电脑上的输入设备' : 'macOS 首次使用麦克风时会请求一次权限，由你确认是否允许'}</small></div><div className="device-field"><div className="device-field-heading"><label htmlFor="audio-output-device"><Headphones size={17} /> 音频输出设备</label>{canSelectAudioOutputDevice() && <button type="button" onClick={() => void chooseAudioOutput()}>选择设备</button>}</div><select id="audio-output-device" value={preferences.outputDeviceId} onChange={(event) => changePreferences({ outputDeviceId: event.target.value })}><option value="default">系统默认输出（{defaultOutputLabel}）</option>{audioOutputDevices.filter((output) => output.deviceId !== 'default').map((output) => <option key={output.deviceId} value={output.deviceId}>{output.label}</option>)}</select><small>{canSelectAudioOutputDevice() ? '点击“选择设备”可打开系统输出设备选择窗口' : audioOutputDevices.length <= 1 ? '当前运行环境只开放了系统默认输出设备' : '输出设备无需麦克风权限，选择后会立即切换远端语音'}</small></div><SettingSlider icon={<Mic size={17} />} label="麦克风输入" value={preferences.inputVolume} onChange={(value) => changePreferences({ inputVolume: value })} /><SettingSlider icon={<Headphones size={17} />} label="扬声器输出" value={preferences.outputVolume} onChange={(value) => changePreferences({ outputVolume: value })} /><label className="toggle-row"><span><Sparkles size={17} /><span><strong>语音降噪</strong><small>自动减少环境噪音</small></span></span><input type="checkbox" checked={preferences.noiseSuppression} onChange={(event) => changePreferences({ noiseSuppression: event.target.checked })} /><i /></label><p className="settings-note">输出设备会立即切换，麦克风设备和降噪会在下一次打开麦克风时生效</p></div></div>}
+      {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}><div className="modal" onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><div className="eyebrow">AUDIO SETTINGS</div><h3>音频设置</h3></div><button className="close-button" onClick={() => setShowSettings(false)}><X size={18} /></button></div><div className="device-field"><div className="device-field-heading"><label htmlFor="audio-input-device"><Mic size={17} /> 麦克风设备</label><button type="button" onClick={() => void refreshAudioDevices()} disabled={isLoadingDevices}><RefreshCw size={14} className={isLoadingDevices ? 'spinning' : ''} />刷新</button></div><select id="audio-input-device" value={preferences.inputDeviceId} onChange={(event) => changePreferences({ inputDeviceId: event.target.value })}><option value="default">系统默认麦克风（{defaultInputLabel}）</option>{audioInputDevices.filter((input) => input.deviceId !== 'default').map((input) => <option key={input.deviceId} value={input.deviceId}>{input.label}</option>)}</select><small>{microphonePermission === 'denied' ? '麦克风权限未开启，请在 macOS 隐私设置或浏览器网站设置中允许后刷新' : hasMicrophoneDeviceAccess ? '可直接选择电脑上的输入设备' : '正在等待系统或浏览器确认麦克风权限'}</small></div><div className="device-field"><div className="device-field-heading"><label htmlFor="audio-output-device"><Headphones size={17} /> 音频输出设备</label>{canSelectAudioOutputDevice() && <button type="button" onClick={() => void chooseAudioOutput()}>选择设备</button>}</div><select id="audio-output-device" value={preferences.outputDeviceId} onChange={(event) => changePreferences({ outputDeviceId: event.target.value })}><option value="default">系统默认输出（{defaultOutputLabel}）</option>{audioOutputDevices.filter((output) => output.deviceId !== 'default').map((output) => <option key={output.deviceId} value={output.deviceId}>{output.label}</option>)}</select><small>{canSelectAudioOutputDevice() ? '点击“选择设备”可打开系统输出设备选择窗口' : audioOutputDevices.length <= 1 ? '当前运行环境只开放了系统默认输出设备' : '输出设备无需麦克风权限，选择后会立即切换远端语音'}</small></div><SettingSlider icon={<Mic size={17} />} label="麦克风输入" value={preferences.inputVolume} onChange={(value) => changePreferences({ inputVolume: value })} /><SettingSlider icon={<Headphones size={17} />} label="扬声器输出" value={preferences.outputVolume} onChange={(value) => changePreferences({ outputVolume: value })} /><label className="toggle-row"><span><Sparkles size={17} /><span><strong>语音降噪</strong><small>自动减少环境噪音</small></span></span><input type="checkbox" checked={preferences.noiseSuppression} onChange={(event) => changePreferences({ noiseSuppression: event.target.checked })} /><i /></label><p className="settings-note">输出设备会立即切换，麦克风设备和降噪会在下一次打开麦克风时生效</p></div></div>}
     </main>
   )
 }
