@@ -40,6 +40,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: 缓存前端依赖目录
+        id: npm-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: 安装 Rust
         uses: dtolnay/rust-toolchain@stable
@@ -53,7 +61,8 @@ jobs:
           key: ${{ matrix.name }}
 
       - name: 安装前端依赖
-        run: npm ci
+        if: steps.npm-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: 构建并发布安装包
         uses: tauri-apps/tauri-action@v0
