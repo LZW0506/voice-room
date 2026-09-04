@@ -29,6 +29,7 @@ jobs:
             platform: windows-latest
             rustTargets: ""
             args: --bundles nsis
+      max-parallel: 1
 
     steps:
       - name: 检出代码
@@ -67,6 +68,7 @@ jobs:
           releaseBody: 下载 macOS 或 Windows 安装包，已安装版本会自动检查后续更新
           releaseDraft: true
           prerelease: false
+          assetNamePattern: voice-room_[version]_[arch][setup][ext]
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           updaterJsonKeepUniversal: true

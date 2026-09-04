@@ -38,4 +38,6 @@ Windows 使用 WebView2 运行界面，首次使用麦克风时由系统请求�
 
 GitHub Actions 使用 Tauri 官方能力生成 `latest.json`，发布步骤会将其中的安装包地址统一转换为国内代理地址
 
+Release 安装包使用 `voice-room_版本_架构` 命名，便于区分项目和平台文件
+
 麦克风输入、全局输出和成员独立音量通过 Web Audio API 增益处理，最高支持 300%
