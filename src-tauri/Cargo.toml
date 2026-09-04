@@ -1,6 +1,6 @@
 [package]
 name = "voice-room"
-version = "0.1.9"
+version = "0.1.10"
 description = "基于 LiveKit 的桌面语音聊天室"
 authors = ["Voice Room"]
 edition = "2021"

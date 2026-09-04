@@ -9,6 +9,9 @@ fn machine_code() -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            // Windows 不使用原生菜单栏，桌面端仅保留应用内的自定义操作
+            #[cfg(target_os = "windows")]
+            app.remove_menu()?;
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
