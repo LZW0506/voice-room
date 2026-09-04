@@ -1,5 +1,6 @@
 node_modules
 dist
+/public/deepfilter/
 src-tauri/target
 .env
 .DS_Store

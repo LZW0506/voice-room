@@ -11,7 +11,7 @@ import {
 } from 'livekit-client'
 import { Mic, MicOff, Pencil, Radio, RefreshCw, Settings, Sparkles, Users, Volume2, VolumeX, Wifi } from 'lucide-react'
 import { createDefaultRoom, formatParticipantCount, getParticipantInitial } from './lib/ui'
-import { canSelectAudioOutputDevice, connectRoom, createProcessedMicrophone, createRoom, disposeMicrophone, fetchToken, getAudioOutputErrorMessage, getMicrophoneErrorMessage, getMicrophonePermissionGuide, getMicrophonePermissionState, getRoomLatency, listAudioInputDevices, listAudioOutputDevices, selectAudioOutputDevice, type AudioInputDevice, type AudioOutputDevice, type MicrophonePermissionState, type MicrophoneResources } from './lib/livekit'
+import { canSelectAudioOutputDevice, connectRoom, createProcessedMicrophone, createRoom, disposeMicrophone, fetchToken, getAudioOutputErrorMessage, getMicrophoneErrorMessage, getMicrophonePermissionGuide, getRoomLatency, listAudioInputDevices, listAudioOutputDevices, selectAudioOutputDevice, type AudioInputDevice, type AudioOutputDevice, type MicrophonePermissionState, type MicrophoneResources } from './lib/livekit'
 import { getDeviceProfile, saveDisplayName, type DeviceProfile } from './lib/device'
 import { checkForAppUpdate, getAppVersion, installAppUpdate, type AppUpdate, type AppUpdateDownloadEvent } from './lib/updater'
 import { RemoteAudio } from './components/RemoteAudio'
@@ -128,6 +128,7 @@ export default function App() {
   const [temporarilyMutedParticipants, setTemporarilyMutedParticipants] = useState<Set<string>>(new Set())
   const roomRef = useRef<Room | null>(null)
   const microphoneRef = useRef<MicrophoneResources | null>(null)
+  const microphonePublishInProgressRef = useRef(false)
   const microphoneTestRef = useRef<MicrophoneTestResources | null>(null)
   const availableUpdateRef = useRef<AppUpdate | null>(null)
   const updateCheckInProgressRef = useRef(false)
@@ -137,6 +138,7 @@ export default function App() {
   const participantOrderRef = useRef(new Map<string, number>())
   const nextParticipantOrderRef = useRef(0)
   const soundPreferencesRef = useRef({ outputVolume: preferences.outputVolume, outputDeviceId: preferences.outputDeviceId, muted: isOutputMuted })
+  const joinInProgressRef = useRef(false)
 
   useEffect(() => {
     soundPreferencesRef.current = { outputVolume: preferences.outputVolume, outputDeviceId: preferences.outputDeviceId, muted: isOutputMuted }
@@ -223,11 +225,6 @@ export default function App() {
     }
   }, [handleUpdateDownload])
 
-  /** 关闭更新提示但保留设置页中的更新信息 */
-  const dismissUpdatePrompt = () => {
-    setShowUpdatePrompt(false)
-  }
-
   /** 刷新系统中可供浏览器使用的输入与输出设备 */
   const refreshAudioDevices = useCallback(async () => {
     setIsLoadingDevices(true)
@@ -254,7 +251,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    void getMicrophonePermissionState().then(setMicrophonePermission)
     void refreshAudioDevices()
     navigator.mediaDevices?.addEventListener('devicechange', refreshAudioDevices)
     return () => navigator.mediaDevices?.removeEventListener('devicechange', refreshAudioDevices)
@@ -338,30 +334,36 @@ export default function App() {
 
   /** 创建并发布当前设置对应的麦克风轨道 */
   const publishMicrophone = async (room: Room) => {
-    if (microphoneRef.current) return
-    const microphone = await createProcessedMicrophone(
-      preferences.inputVolume,
-      preferences.noiseSuppression,
-      preferences.echoCancellation,
-      preferences.autoGainControl,
-      preferences.inputDeviceId,
-    )
+    if (microphoneRef.current || microphonePublishInProgressRef.current) return
+    microphonePublishInProgressRef.current = true
     try {
-      await room.localParticipant.publishTrack(microphone.track, { name: 'microphone', source: Track.Source.Microphone })
-      microphoneRef.current = microphone
-      setIsMuted(false)
-      syncRoomState(room)
-      void refreshAudioDevices()
-    } catch (publishError) {
-      await disposeMicrophone(microphone)
-      throw publishError
+      const microphone = await createProcessedMicrophone(
+        preferences.inputVolume,
+        preferences.noiseSuppression,
+        preferences.echoCancellation,
+        preferences.inputDeviceId,
+      )
+      try {
+        await room.localParticipant.publishTrack(microphone.track, { name: 'microphone', source: Track.Source.Microphone })
+        microphoneRef.current = microphone
+        setMicrophonePermission('granted')
+        setIsMuted(false)
+        syncRoomState(room)
+        void refreshAudioDevices()
+      } catch (publishError) {
+        await disposeMicrophone(microphone)
+        throw publishError
+      }
+    } finally {
+      microphonePublishInProgressRef.current = false
     }
   }
 
   /** 进入指定语音房间并连接 LiveKit */
   const joinRoom = async () => {
     const normalizedRoom = roomName.trim()
-    if (!normalizedRoom || !device || isConnecting) return
+    if (!normalizedRoom || !device || isConnecting || joinInProgressRef.current) return
+    joinInProgressRef.current = true
     void prepareRoomSound(preferences.outputDeviceId).catch(() => undefined)
     setError('')
     setIsConnecting(true)
@@ -384,6 +386,7 @@ export default function App() {
       try {
         await publishMicrophone(room)
       } catch (microphoneError) {
+        if (microphoneError instanceof DOMException && microphoneError.name === 'NotAllowedError') setMicrophonePermission('denied')
         setIsMuted(true)
         setError(getMicrophoneErrorMessage(microphoneError))
       }
@@ -392,6 +395,7 @@ export default function App() {
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : '加入房间失败')
     } finally {
+      joinInProgressRef.current = false
       setIsConnecting(false)
     }
   }
@@ -440,6 +444,7 @@ export default function App() {
       }
       await publishMicrophone(room)
     } catch (microphoneError) {
+      if (microphoneError instanceof DOMException && microphoneError.name === 'NotAllowedError') setMicrophonePermission('denied')
       setError(getMicrophoneErrorMessage(microphoneError))
     }
   }
@@ -470,10 +475,11 @@ export default function App() {
     if (roomRef.current) syncRoomState(roomRef.current)
   }
 
-  /** 更新音频偏好并立即调整当前麦克风增益 */
+  /** 更新音频偏好并立即调整当前音频处理链路 */
   const changePreferences = (patch: Partial<AudioPreferences>) => {
     updateAudioPreferences(patch)
     if (patch.inputVolume !== undefined && microphoneRef.current) microphoneRef.current.gainNode.gain.value = patch.inputVolume / 100
+    if (patch.noiseSuppression !== undefined && microphoneRef.current) microphoneRef.current.denoiser.setNoiseSuppressionEnabled(patch.noiseSuppression)
   }
 
   /** 打开指定成员的本机独立音量菜单 */
@@ -669,7 +675,7 @@ export default function App() {
       {remoteAudioTracks.map(({ track, participantIdentity }) => <RemoteAudio key={track.sid} track={track} volume={isOutputMuted || temporarilyMutedParticipants.has(participantIdentity) ? 0 : preferences.outputVolume * (participantVolumes[participantIdentity] ?? 100) / 100} outputDeviceId={preferences.outputDeviceId} onOutputError={handleOutputError} />)}
       {participantVolumeMenu && <ParticipantVolumePopover menu={participantVolumeMenu} volume={participantVolumes[participantVolumeMenu.identity] ?? 100} muted={temporarilyMutedParticipants.has(participantVolumeMenu.identity)} onChange={(volume) => changeParticipantVolume(participantVolumeMenu.identity, volume)} onToggleMuted={() => toggleParticipantMuted(participantVolumeMenu.identity)} onReset={() => resetParticipantVolume(participantVolumeMenu.identity)} />}
       {error && <Alert className="toast-error" type="error" showIcon message={error} closable onClose={() => setError('')} />}
-      {showUpdatePrompt && availableUpdate && <Alert className="toast-update" type="info" showIcon message={`发现声屿新版本 v${availableUpdate.version}`} description="可以在设置中查看更新说明并手动安装" action={<Button type="primary" size="small" loading={isInstallingUpdate} onClick={() => void startAppUpdate()}>立即更新</Button>} closable onClose={dismissUpdatePrompt} />}
+      {showUpdatePrompt && availableUpdate && <Alert className="toast-update" type="info" showIcon message={`发现新版本 v${availableUpdate.version}`} />}
       <Modal className="name-edit-modal" open={isNameEditing} onCancel={() => setIsNameEditing(false)} footer={null} centered title="修改昵称"><div className="name-edit-form"><Input value={nameDraft} maxLength={24} autoFocus onChange={(event) => setNameDraft(event.target.value)} onPressEnter={() => void commitName()} /><Button type="primary" block size="large" onClick={() => void commitName()}>保存昵称</Button></div></Modal>
       <AudioSettingsModal open={showSettings} onClose={() => setShowSettings(false)} audioInputDevices={audioInputDevices} audioOutputDevices={audioOutputDevices} preferences={preferences} defaultInputLabel={defaultInputLabel} defaultOutputLabel={defaultOutputLabel} microphonePermission={microphonePermission} hasMicrophoneDeviceAccess={hasMicrophoneDeviceAccess} isLoadingDevices={isLoadingDevices} isTestingMicrophone={isTestingMicrophone} microphoneTestLevel={microphoneTestLevel} canSelectOutput={canSelectAudioOutputDevice()} appVersion={appVersion} availableUpdate={availableUpdate} updateStatus={updateStatus} isCheckingUpdate={isCheckingUpdate} isInstallingUpdate={isInstallingUpdate} updateProgress={updateProgress} onRefreshDevices={() => void refreshAudioDevices()} onChooseOutput={() => void chooseAudioOutput()} onTestMicrophone={() => void testMicrophone()} onChangePreferences={changePreferences} onCheckUpdate={() => void performUpdateCheck(true)} onInstallUpdate={() => void startAppUpdate()} />
     </main>
@@ -854,5 +860,5 @@ interface AudioSettingsModalProps {
 
 /** 使用 Ant Design 展示语音设备、音量与音频处理设置 */
 function AudioSettingsModal({ open, onClose, audioInputDevices, audioOutputDevices, preferences, defaultInputLabel, defaultOutputLabel, microphonePermission, hasMicrophoneDeviceAccess, isLoadingDevices, isTestingMicrophone, microphoneTestLevel, canSelectOutput, appVersion, availableUpdate, updateStatus, isCheckingUpdate, isInstallingUpdate, updateProgress, onRefreshDevices, onChooseOutput, onTestMicrophone, onChangePreferences, onCheckUpdate, onInstallUpdate }: AudioSettingsModalProps) {
-  return <Modal className="settings-ant-modal" open={open} onCancel={onClose} footer={null} centered width={620} title="设置"><section className="settings-section"><h4>设备与测试</h4><div className="settings-panel"><div className="device-setting-row"><label htmlFor="audio-input-device">输入设备</label><div className="device-select-wrap"><Select id="audio-input-device" value={preferences.inputDeviceId} onChange={(value) => onChangePreferences({ inputDeviceId: value })} options={[{ value: 'default', label: `默认 - ${defaultInputLabel}` }, ...audioInputDevices.filter((input) => input.deviceId !== 'default').map((input) => ({ value: input.deviceId, label: input.label }))]} /><Button type="text" icon={<RefreshCw size={14} className={isLoadingDevices ? 'spinning' : ''} />} onClick={onRefreshDevices} loading={isLoadingDevices} aria-label="刷新输入设备" /></div></div><div className="device-setting-row"><label htmlFor="audio-output-device">输出设备</label><div className="device-select-wrap"><Select id="audio-output-device" value={preferences.outputDeviceId} onChange={(value) => onChangePreferences({ outputDeviceId: value })} options={[{ value: 'default', label: `默认 - ${defaultOutputLabel}` }, ...audioOutputDevices.filter((output) => output.deviceId !== 'default').map((output) => ({ value: output.deviceId, label: output.label }))]} />{canSelectOutput && <Button type="text" onClick={onChooseOutput}>选择</Button>}</div></div><small className="device-permission-note">{microphonePermission === 'denied' ? getMicrophonePermissionGuide() : hasMicrophoneDeviceAccess ? '可直接选择电脑上的输入设备' : '正在等待系统或浏览器确认麦克风权限'}</small><div className="mic-test-row"><span className="settings-row-label"><Mic size={17} />麦克风测试</span><div className="mic-test-controls"><Button type="primary" onClick={onTestMicrophone}>{isTestingMicrophone ? '停止测试' : '检查一下'}</Button><div className="level-meter" aria-label="麦克风输入电平">{Array.from({ length: 36 }, (_, index) => <i key={index} className={index < Math.round(microphoneTestLevel * 36) ? 'active' : ''} />)}</div></div></div></div></section><section className="settings-section"><h4>音频设置</h4><div className="settings-panel processing-panel"><VolumeSetting label="麦克风输入" value={preferences.inputVolume} onChange={(value) => onChangePreferences({ inputVolume: value })} /><VolumeSetting label="扬声器输出" value={preferences.outputVolume} onChange={(value) => onChangePreferences({ outputVolume: value })} /><AudioToggle label="语音降噪" description="使用系统音频处理减少环境噪音" value={preferences.noiseSuppression} onChange={(value) => onChangePreferences({ noiseSuppression: value })} /><AudioToggle label="回音抵消" description="减少扬声器声音回到麦克风" value={preferences.echoCancellation} onChange={(value) => onChangePreferences({ echoCancellation: value })} /><AudioToggle label="声音增强" description="使用系统自动增益稳定麦克风音量" value={preferences.autoGainControl} onChange={(value) => onChangePreferences({ autoGainControl: value })} /></div></section><section className="settings-section"><h4>应用更新</h4><div className="settings-panel update-panel"><div className="version-setting-row"><div><span>当前版本</span><strong>{appVersion === '开发版' ? appVersion : `v${appVersion}`}</strong></div><Button type="default" onClick={onCheckUpdate} loading={isCheckingUpdate}>检查更新</Button></div><div className="update-status-row"><span>{availableUpdate ? `发现新版本 v${availableUpdate.version}` : updateStatus}</span>{availableUpdate && <Button type="primary" onClick={onInstallUpdate} loading={isInstallingUpdate}>立即更新</Button>}</div>{isInstallingUpdate && <Progress percent={updateProgress ?? undefined} status="active" showInfo={updateProgress !== null} />}{availableUpdate?.body && <div className="update-notes">{availableUpdate.body}</div>}</div></section><p className="settings-note">音频设置会自动保存在本机，输入、输出和成员独立音量最高支持 300%</p></Modal>
+  return <Modal className="settings-ant-modal" open={open} onCancel={onClose} footer={null} centered width={620} title="设置"><section className="settings-section"><h4>设备与测试</h4><div className="settings-panel"><div className="device-setting-row"><label htmlFor="audio-input-device">输入设备</label><div className="device-select-wrap"><Select id="audio-input-device" value={preferences.inputDeviceId} onChange={(value) => onChangePreferences({ inputDeviceId: value })} options={[{ value: 'default', label: `默认 - ${defaultInputLabel}` }, ...audioInputDevices.filter((input) => input.deviceId !== 'default').map((input) => ({ value: input.deviceId, label: input.label }))]} /><Button type="text" icon={<RefreshCw size={14} className={isLoadingDevices ? 'spinning' : ''} />} onClick={onRefreshDevices} loading={isLoadingDevices} aria-label="刷新输入设备" /></div></div><div className="device-setting-row"><label htmlFor="audio-output-device">输出设备</label><div className="device-select-wrap"><Select id="audio-output-device" value={preferences.outputDeviceId} onChange={(value) => onChangePreferences({ outputDeviceId: value })} options={[{ value: 'default', label: `默认 - ${defaultOutputLabel}` }, ...audioOutputDevices.filter((output) => output.deviceId !== 'default').map((output) => ({ value: output.deviceId, label: output.label }))]} />{canSelectOutput && <Button type="text" onClick={onChooseOutput}>选择</Button>}</div></div><small className="device-permission-note">{microphonePermission === 'denied' ? getMicrophonePermissionGuide() : hasMicrophoneDeviceAccess ? '可直接选择电脑上的输入设备' : '正在等待系统或浏览器确认麦克风权限'}</small><div className="mic-test-row"><span className="settings-row-label"><Mic size={17} />麦克风测试</span><div className="mic-test-controls"><Button type="primary" onClick={onTestMicrophone}>{isTestingMicrophone ? '停止测试' : '检查一下'}</Button><div className="level-meter" aria-label="麦克风输入电平">{Array.from({ length: 36 }, (_, index) => <i key={index} className={index < Math.round(microphoneTestLevel * 36) ? 'active' : ''} />)}</div></div></div></div></section><section className="settings-section"><h4>音频设置</h4><div className="settings-panel processing-panel"><VolumeSetting label="麦克风输入" value={preferences.inputVolume} onChange={(value) => onChangePreferences({ inputVolume: value })} /><VolumeSetting label="扬声器输出" value={preferences.outputVolume} onChange={(value) => onChangePreferences({ outputVolume: value })} /><AudioToggle label="语音降噪" description="使用 DeepFilterNet 本地模型处理环境噪音" value={preferences.noiseSuppression} onChange={(value) => onChangePreferences({ noiseSuppression: value })} /><AudioToggle label="回音抵消" description="使用系统音频处理减少扬声器声音回到麦克风" value={preferences.echoCancellation} onChange={(value) => onChangePreferences({ echoCancellation: value })} /></div></section><section className="settings-section"><h4>应用更新</h4><div className="settings-panel update-panel"><div className="version-setting-row"><div><span>当前版本</span><strong>{appVersion === '开发版' ? appVersion : `v${appVersion}`}</strong></div><Button type="default" onClick={onCheckUpdate} loading={isCheckingUpdate}>检查更新</Button></div><div className="update-status-row"><span>{availableUpdate ? `发现新版本 v${availableUpdate.version}` : updateStatus}</span>{availableUpdate && <Button type="primary" onClick={onInstallUpdate} loading={isInstallingUpdate}>立即更新</Button>}</div>{isInstallingUpdate && <Progress percent={updateProgress ?? 0} status="active" showInfo />}{availableUpdate?.body && <div className="update-notes">{availableUpdate.body}</div>}</div></section><p className="settings-note">音频设置会自动保存在本机，输入、输出和成员独立音量最高支持 300%</p></Modal>
 }

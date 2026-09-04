@@ -1213,6 +1213,16 @@ debug@^4.1.0, debug@^4.3.1:
   dependencies:
     ms "^2.1.3"
 
+deepfilternet3-assets@1.0.4:
+  version "1.0.4"
+  resolved "https://registry.npmmirror.com/deepfilternet3-assets/-/deepfilternet3-assets-1.0.4.tgz#6b2cda89ea9455147a73f5a905a4c40c48fa4c3a"
+  integrity sha512-a6kbnbPzwooy776sVKy/EzTkBHPTf0NTcmZfhHWYyNKuc2ZHEJa6QuIcwWfcks87xQqkk/yqfmTob228jB1UOg==
+
+deepfilternet3-noise-filter@1.3.0:
+  version "1.3.0"
+  resolved "https://registry.npmmirror.com/deepfilternet3-noise-filter/-/deepfilternet3-noise-filter-1.3.0.tgz#c3762d00812edf8daae032e8b55b843aa691a6e8"
+  integrity sha512-yYFUlPuvPguqcd/R6/OSsr0noGqlqOE50JkCWYHogk+PjLj9qrNgwTt5zKraVkKnw0l4+eXJagkz2SUWtUl4sQ==
+
 electron-to-chromium@^1.5.402:
   version "1.5.421"
   resolved "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.5.421.tgz#4fdc138536e3705d565baf5921e89f36633dcd56"

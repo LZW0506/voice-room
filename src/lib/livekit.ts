@@ -1,4 +1,5 @@
 import { isTauri } from '@tauri-apps/api/core'
+import { DeepFilterNet3Core } from 'deepfilternet3-noise-filter'
 import { LocalAudioTrack, Room, RoomEvent } from 'livekit-client'
 
 const TOKEN_URL = import.meta.env.VITE_TOKEN_URL || 'http://82.157.174.249:8787/api/token'
@@ -32,6 +33,10 @@ export interface MicrophoneResources {
   audioContext: AudioContext
   /** 控制麦克风输入音量的增益节点 */
   gainNode: GainNode
+  /** DeepFilterNet 本地降噪核心 */
+  denoiser: DeepFilterNet3Core
+  /** DeepFilterNet 音频工作节点 */
+  denoiseNode: AudioWorkletNode
 }
 
 /** 麦克风输入设备实体 */
@@ -92,32 +97,46 @@ function getNetworkErrorMessage(error: unknown): string {
   return '请求被系统拦截'
 }
 
-/** 创建带有回声消除、自动增益与可选降噪的麦克风轨道 */
+/** 创建带有回声抵消、本地 DeepFilterNet 降噪与可选增益的麦克风轨道 */
 export async function createProcessedMicrophone(
   inputVolume: number,
   noiseSuppression: boolean,
   echoCancellation: boolean,
-  autoGainControl: boolean,
   inputDeviceId: string,
 ): Promise<MicrophoneResources> {
   const rawStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       deviceId: inputDeviceId === 'default' ? undefined : { exact: inputDeviceId },
       echoCancellation,
-      noiseSuppression,
-      autoGainControl,
+      noiseSuppression: false,
       channelCount: 1,
     },
   })
-  const audioContext = new AudioContext()
-  const source = audioContext.createMediaStreamSource(rawStream)
-  const gainNode = audioContext.createGain()
-  const destination = audioContext.createMediaStreamDestination()
-  gainNode.gain.value = inputVolume / 100
-  source.connect(gainNode).connect(destination)
-  const outputTrack = destination.stream.getAudioTracks()[0]
-  if (!outputTrack) throw new Error('未能创建麦克风轨道')
-  return { track: new LocalAudioTrack(outputTrack), rawStream, audioContext, gainNode }
+  let audioContext: AudioContext | null = null
+  let denoiser: DeepFilterNet3Core | null = null
+  let denoiseNode: AudioWorkletNode | null = null
+  try {
+    audioContext = new AudioContext({ sampleRate: 48000 })
+    denoiser = new DeepFilterNet3Core({ sampleRate: audioContext.sampleRate, noiseReductionLevel: 80, assetConfig: { cdnUrl: `${window.location.origin}/deepfilter` } })
+    await denoiser.initialize()
+    denoiseNode = await denoiser.createAudioWorkletNode(audioContext)
+    denoiser.setNoiseSuppressionEnabled(noiseSuppression)
+    const source = audioContext.createMediaStreamSource(rawStream)
+    const gainNode = audioContext.createGain()
+    const destination = audioContext.createMediaStreamDestination()
+    gainNode.gain.value = inputVolume / 100
+    source.connect(denoiseNode).connect(gainNode).connect(destination)
+    const outputTrack = destination.stream.getAudioTracks()[0]
+    if (!outputTrack) throw new Error('未能创建麦克风轨道')
+    await audioContext.resume()
+    return { track: new LocalAudioTrack(outputTrack), rawStream, audioContext, gainNode, denoiser, denoiseNode }
+  } catch (error) {
+    denoiseNode?.disconnect()
+    denoiser?.destroy()
+    if (audioContext) await audioContext.close().catch(() => undefined)
+    rawStream.getTracks().forEach((track) => track.stop())
+    throw error
+  }
 }
 
 /** 读取当前浏览器能够识别的全部麦克风设备 */
@@ -228,6 +247,8 @@ export function getAudioOutputErrorMessage(error: unknown): string {
 export async function disposeMicrophone(resources: MicrophoneResources): Promise<void> {
   resources.track.stop()
   resources.rawStream.getTracks().forEach((track) => track.stop())
+  resources.denoiseNode.disconnect()
+  resources.denoiser.destroy()
   await resources.audioContext.close()
 }
 

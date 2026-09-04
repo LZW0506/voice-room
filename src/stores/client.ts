@@ -14,12 +14,10 @@ export interface AudioPreferences {
   inputVolume: number
   /** 扬声器输出音量百分比 */
   outputVolume: number
-  /** 是否启用浏览器原生降噪约束 */
+  /** 是否启用 DeepFilterNet 本地降噪 */
   noiseSuppression: boolean
   /** 是否启用回声抵消 */
   echoCancellation: boolean
-  /** 是否启用自动声音增强 */
-  autoGainControl: boolean
 }
 
 /** 需要持久化到当前设备的客户端状态实体 */
@@ -56,7 +54,6 @@ const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
   outputVolume: 85,
   noiseSuppression: true,
   echoCancellation: true,
-  autoGainControl: true,
 }
 
 /** 将音量限制在客户端支持的增益范围内 */
