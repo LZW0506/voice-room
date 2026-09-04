@@ -4,6 +4,9 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 /** 客户端支持的最大音频增益百分比 */
 export const MAX_AUDIO_VOLUME = 300
 
+/** DeepFilterNet 支持的最大降噪强度 */
+export const MAX_NOISE_REDUCTION_LEVEL = 100
+
 /** 客户端音频偏好实体 */
 export interface AudioPreferences {
   /** 当前选择的麦克风设备标识 */
@@ -16,6 +19,8 @@ export interface AudioPreferences {
   outputVolume: number
   /** 是否启用 DeepFilterNet 本地降噪 */
   noiseSuppression: boolean
+  /** DeepFilterNet 降噪强度 */
+  noiseReductionLevel: number
   /** 是否启用回声抵消 */
   echoCancellation: boolean
 }
@@ -28,12 +33,12 @@ interface PersistedClientState {
   displayName: string
   /** 当前音频偏好 */
   audioPreferences: AudioPreferences
-  /** 按参与者身份保存的独立音量 */
-  participantVolumes: Record<string, number>
 }
 
 /** 客户端状态及操作实体 */
 interface ClientStore extends PersistedClientState {
+  /** 本次应用会话中的成员独立音量 */
+  participantVolumes: Record<string, number>
   /** 保存浏览器开发模式下的设备标识 */
   setBrowserDeviceIdentity: (identity: string) => void
   /** 保存用户展示昵称 */
@@ -53,12 +58,18 @@ const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
   inputVolume: 100,
   outputVolume: 85,
   noiseSuppression: true,
+  noiseReductionLevel: 80,
   echoCancellation: true,
 }
 
 /** 将音量限制在客户端支持的增益范围内 */
 function normalizeVolume(volume: number): number {
   return Math.max(0, Math.min(MAX_AUDIO_VOLUME, volume))
+}
+
+/** 将降噪强度限制在 DeepFilterNet 支持的范围内 */
+function normalizeNoiseReductionLevel(level: number): number {
+  return Math.max(0, Math.min(MAX_NOISE_REDUCTION_LEVEL, level))
 }
 
 /** 客户端持久化状态仓库 */
@@ -76,6 +87,9 @@ export const useClientStore = create<ClientStore>()(persist(
         ...patch,
         inputVolume: patch.inputVolume === undefined ? state.audioPreferences.inputVolume : normalizeVolume(patch.inputVolume),
         outputVolume: patch.outputVolume === undefined ? state.audioPreferences.outputVolume : normalizeVolume(patch.outputVolume),
+        noiseReductionLevel: patch.noiseReductionLevel === undefined
+          ? state.audioPreferences.noiseReductionLevel
+          : normalizeNoiseReductionLevel(patch.noiseReductionLevel),
       },
     })),
     setParticipantVolume: (identity, volume) => set((state) => ({
@@ -97,7 +111,19 @@ export const useClientStore = create<ClientStore>()(persist(
       browserDeviceIdentity: state.browserDeviceIdentity,
       displayName: state.displayName,
       audioPreferences: state.audioPreferences,
-      participantVolumes: state.participantVolumes,
     }),
+    merge: (persisted, current) => {
+      const persistedState = persisted as Partial<PersistedClientState>
+      return {
+        ...current,
+        ...persistedState,
+        participantVolumes: {},
+        audioPreferences: {
+          ...current.audioPreferences,
+          ...persistedState.audioPreferences,
+          noiseReductionLevel: persistedState.audioPreferences?.noiseReductionLevel ?? current.audioPreferences.noiseReductionLevel,
+        },
+      }
+    },
   },
 ))

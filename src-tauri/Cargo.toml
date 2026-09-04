@@ -19,3 +19,22 @@ tauri = { version = "2", features = [] }
 machine-uid = "0.5"
 tauri-plugin-updater = "2.11.0"
 tauri-plugin-process = "2.3.1"
+cpal = "0.16"
+futures-util = "0.3"
+livekit = { version = "0.8.4", features = ["rustls-tls-native-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+parking_lot = "0.12"
+realfft = "3.5"
+num-complex = "0.4"
+ndarray = "0.17"
+flate2 = "1.1"
+tar = "0.4"
+
+# ONNX Runtime 使用官方预编译运行时，避免开发机额外安装 C/C++ 依赖
+# Windows 使用 CPU EP，macOS 使用 Core ML EP，具体执行提供程序在 audio_processor.rs 中按平台配置
+[target.'cfg(target_os = "windows")'.dependencies]
+ort = { version = "2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls", "api-27"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = { version = "2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls", "coreml", "api-27"] }

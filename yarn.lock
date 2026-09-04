@@ -229,11 +229,6 @@
     "@babel/helper-string-parser" "^7.29.7"
     "@babel/helper-validator-identifier" "^7.29.7"
 
-"@bufbuild/protobuf@^1.10.0":
-  version "1.10.1"
-  resolved "https://registry.npmmirror.com/@bufbuild/protobuf/-/protobuf-1.10.1.tgz#1d76d15290c0212076c15ede94d15157ba0c6344"
-  integrity sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ==
-
 "@emotion/hash@^0.8.0":
   version "0.8.0"
   resolved "https://registry.npmmirror.com/@emotion/hash/-/hash-0.8.0.tgz#bbbff68978fefdbe68ccb533bc8cbe1d1afb5413"
@@ -407,23 +402,6 @@
   dependencies:
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
-
-"@livekit/components-styles@^1.1.4":
-  version "1.2.0"
-  resolved "https://registry.npmmirror.com/@livekit/components-styles/-/components-styles-1.2.0.tgz#eaff70405910a428ad580dc19910fa97b5019fef"
-  integrity sha512-74/rt0lDh6aHmOPmWAeDE9C4OrNW9RIdmhX/YRbovQBVNGNVWojRjl3FgQZ5LPFXO6l1maKB4JhXcBFENVxVvw==
-
-"@livekit/mutex@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.npmmirror.com/@livekit/mutex/-/mutex-1.1.1.tgz#72492b611d55be8130ba2271b7a436d94b1bc6d4"
-  integrity sha512-EsshAucklmpuUAfkABPxJNhzj9v2sG7JuzFDL4ML1oJQSV14sqrpTYnsaOudMAw9yOaW53NU3QQTlUQoRs4czw==
-
-"@livekit/protocol@1.50.4":
-  version "1.50.4"
-  resolved "https://registry.npmmirror.com/@livekit/protocol/-/protocol-1.50.4.tgz#31495741dd786924b8ba6e190dd2a6e5d3711c51"
-  integrity sha512-L1uggNQAqyY21smQY8AllyOYbcv9Me9TaxwuLytL1R8ck9nbYPmQLNwEDi3pOFGAMa5F8I2nUi2Jc59W5awxlA==
-  dependencies:
-    "@bufbuild/protobuf" "^1.10.0"
 
 "@napi-rs/lzma-linux-x64-gnu@1.5.1":
   version "1.5.1"
@@ -1213,16 +1191,6 @@ debug@^4.1.0, debug@^4.3.1:
   dependencies:
     ms "^2.1.3"
 
-deepfilternet3-assets@1.0.4:
-  version "1.0.4"
-  resolved "https://registry.npmmirror.com/deepfilternet3-assets/-/deepfilternet3-assets-1.0.4.tgz#6b2cda89ea9455147a73f5a905a4c40c48fa4c3a"
-  integrity sha512-a6kbnbPzwooy776sVKy/EzTkBHPTf0NTcmZfhHWYyNKuc2ZHEJa6QuIcwWfcks87xQqkk/yqfmTob228jB1UOg==
-
-deepfilternet3-noise-filter@1.3.0:
-  version "1.3.0"
-  resolved "https://registry.npmmirror.com/deepfilternet3-noise-filter/-/deepfilternet3-noise-filter-1.3.0.tgz#c3762d00812edf8daae032e8b55b843aa691a6e8"
-  integrity sha512-yYFUlPuvPguqcd/R6/OSsr0noGqlqOE50JkCWYHogk+PjLj9qrNgwTt5zKraVkKnw0l4+eXJagkz2SUWtUl4sQ==
-
 electron-to-chromium@^1.5.402:
   version "1.5.421"
   resolved "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.5.421.tgz#4fdc138536e3705d565baf5921e89f36633dcd56"
@@ -1265,11 +1233,6 @@ escalade@^3.2.0:
   resolved "https://registry.npmmirror.com/escalade/-/escalade-3.2.0.tgz#011a3f69856ba189dffa7dc8fcce99d2a87903e5"
   integrity sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==
 
-events@^3.3.0:
-  version "3.3.0"
-  resolved "https://registry.npmmirror.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
-  integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
-
 fdir@^6.4.4, fdir@^6.5.0:
   version "6.5.0"
   resolved "https://registry.npmmirror.com/fdir/-/fdir-6.5.0.tgz#ed2ab967a331ade62f18d077dae192684d50d350"
@@ -1289,11 +1252,6 @@ is-mobile@^5.0.0:
   version "5.0.0"
   resolved "https://registry.npmmirror.com/is-mobile/-/is-mobile-5.0.0.tgz#1e08a0ef2c38a67bff84a52af68d67bcef445333"
   integrity sha512-Tz/yndySvLAEXh+Uk8liFCxOwVH6YutuR74utvOcu7I9Di+DwM0mtdPVZNaVvvBUM2OXxne/NhOs1zAO7riusQ==
-
-jose@^6.1.0:
-  version "6.2.10"
-  resolved "https://registry.npmmirror.com/jose/-/jose-6.2.10.tgz#b70436c920c4b3f97314c28a8b8612c15b1d9e7f"
-  integrity sha512-iiW7J9qRFlGxvCOIBDBDxFePQSn7ZMAnrYGhrrOo6siO/MIqwfyilLR27pkfDgUk+raLuzADS8A3S/KLBisc0g==
 
 js-tokens@^4.0.0:
   version "4.0.0"
@@ -1317,27 +1275,6 @@ json5@^2.2.3:
   resolved "https://registry.npmmirror.com/json5/-/json5-2.2.3.tgz#78cd6f1a19bdc12b73db5ad0c61efd66c1e29283"
   integrity sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==
 
-livekit-client@^2.15.0:
-  version "2.22.2"
-  resolved "https://registry.npmmirror.com/livekit-client/-/livekit-client-2.22.2.tgz#f02876afd0297977e9b2052db95d4e91cefbbfa1"
-  integrity sha512-o3yLYoH2eHVR/DmIZzgC96FMvtR4+g/DjeqNwS5zp12EjqrqiRULxm6Oq/YsTE97WnA6fhy23+a2hGkbce5SPA==
-  dependencies:
-    "@livekit/mutex" "1.1.1"
-    "@livekit/protocol" "1.50.4"
-    events "^3.3.0"
-    jose "^6.1.0"
-    loglevel "^1.9.2"
-    machina "^7.0.0"
-    sdp-transform "^2.15.0"
-    tslib "2.8.1"
-    typed-emitter "^2.1.0"
-    webrtc-adapter "9.0.6"
-
-loglevel@^1.9.2:
-  version "1.9.2"
-  resolved "https://registry.npmmirror.com/loglevel/-/loglevel-1.9.2.tgz#c2e028d6c757720107df4e64508530db6621ba08"
-  integrity sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==
-
 lru-cache@^5.1.1:
   version "5.1.1"
   resolved "https://registry.npmmirror.com/lru-cache/-/lru-cache-5.1.1.tgz#1da27e6710271947695daf6848e847f01d84b920"
@@ -1349,11 +1286,6 @@ lucide-react@^0.468.0:
   version "0.468.0"
   resolved "https://registry.npmmirror.com/lucide-react/-/lucide-react-0.468.0.tgz#830c1bfd905575ddd23b832baa420c87db166910"
   integrity sha512-6koYRhnM2N0GGZIdXzSeiNwguv1gt/FAjZOiPl76roBi3xKEXa4WmfpxgQwTTL4KipXjefrnf3oV4IsYhi4JFA==
-
-machina@^7.0.0:
-  version "7.0.1"
-  resolved "https://registry.npmmirror.com/machina/-/machina-7.0.1.tgz#859ad49203a5e194ed6bd1f6ef102c308bf6b839"
-  integrity sha512-0Xkgs8NeBvO2hW6bjJT8ewLWrMfh1haMPstaghpASWjXkLjRhtDiaJG1Kb7mslaOHxZYxpH7PIjpmirRVYbMMA==
 
 ms@^2.1.3:
   version "2.1.3"
@@ -1446,13 +1378,6 @@ rollup@^4.34.9:
     "@rollup/rollup-win32-x64-msvc" "4.63.1"
     fsevents "~2.3.2"
 
-rxjs@^7.5.2:
-  version "7.8.2"
-  resolved "https://registry.npmmirror.com/rxjs/-/rxjs-7.8.2.tgz#955bc473ed8af11a002a2be52071bf475638607b"
-  integrity sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==
-  dependencies:
-    tslib "^2.1.0"
-
 scheduler@^0.27.0:
   version "0.27.0"
   resolved "https://registry.npmmirror.com/scheduler/-/scheduler-0.27.0.tgz#0c4ef82d67d1e5c1e359e8fc76d3a87f045fe5bd"
@@ -1464,16 +1389,6 @@ scroll-into-view-if-needed@^3.1.0:
   integrity sha512-49oNpRjWRvnU8NyGVmUaYG4jtTkNonFZI86MmGRDqBphEK2EXT9gdEUoQPZhuBM8yWHxCWbobltqYO5M4XrUvQ==
   dependencies:
     compute-scroll-into-view "^3.0.2"
-
-sdp-transform@^2.15.0:
-  version "2.15.0"
-  resolved "https://registry.npmmirror.com/sdp-transform/-/sdp-transform-2.15.0.tgz#79d37a2481916f36a0534e07b32ceaa87f71df42"
-  integrity sha512-KrOH82c/W+GYQ0LHqtr3caRpM3ITglq3ljGUIb8LTki7ByacJZ9z+piSGiwZDsRyhQbYBOBJgr2k6X4BZXi3Kw==
-
-sdp@^3.2.0:
-  version "3.2.2"
-  resolved "https://registry.npmmirror.com/sdp/-/sdp-3.2.2.tgz#fdef97433fd61d8950cac8987803a84b11fc0aba"
-  integrity sha512-xZocWwfyp4hkbN4hLWxMjmv2Q8aNa9MhmOZ7L9aCZPT+dZsgRr6wZRrSYE3HTdyk/2pZKPSgqI7ns7Een1xMSA==
 
 semver@^6.3.1:
   version "6.3.1"
@@ -1508,18 +1423,6 @@ tinyglobby@^0.2.13:
     fdir "^6.5.0"
     picomatch "^4.0.4"
 
-tslib@2.8.1, tslib@^2.1.0:
-  version "2.8.1"
-  resolved "https://registry.npmmirror.com/tslib/-/tslib-2.8.1.tgz#612efe4ed235d567e8aba5f2a5fab70280ade83f"
-  integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
-
-typed-emitter@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.npmmirror.com/typed-emitter/-/typed-emitter-2.1.0.tgz#ca78e3d8ef1476f228f548d62e04e3d4d3fd77fb"
-  integrity sha512-g/KzbYKbH5C2vPkaXGu8DJlHrGKHLsM25Zg9WuC9pMGfuvT+X25tZQWo5fK1BjBm8+UrVE9LDCvaY0CQk+fXDA==
-  optionalDependencies:
-    rxjs "^7.5.2"
-
 typescript@~5.7.2:
   version "5.7.3"
   resolved "https://registry.npmmirror.com/typescript/-/typescript-5.7.3.tgz#919b44a7dbb8583a9b856d162be24a54bf80073e"
@@ -1546,13 +1449,6 @@ vite@^6.0.7:
     tinyglobby "^0.2.13"
   optionalDependencies:
     fsevents "~2.3.3"
-
-webrtc-adapter@9.0.6:
-  version "9.0.6"
-  resolved "https://registry.npmmirror.com/webrtc-adapter/-/webrtc-adapter-9.0.6.tgz#d89ce0d7b6b8b49f07bdbd1273074006744905a6"
-  integrity sha512-CHbl2ZQbxx164IgWRgzJno4hWtM4tFbRam1QfI3Yxhs3w/DvqluVxVWeXs3oL5/fbGkSNLKo0Ty5MgUWceNhog==
-  dependencies:
-    sdp "^3.2.0"
 
 yallist@^3.0.2:
   version "3.1.1"
