@@ -11,7 +11,7 @@ import {
 } from 'livekit-client'
 import { Mic, MicOff, Pencil, Radio, RefreshCw, Settings, Sparkles, Users, Volume2, VolumeX, Wifi } from 'lucide-react'
 import { createDefaultRoom, formatParticipantCount, getParticipantInitial } from './lib/ui'
-import { canSelectAudioOutputDevice, connectRoom, createProcessedMicrophone, createRoom, disposeMicrophone, fetchToken, getAudioOutputErrorMessage, getMicrophoneErrorMessage, getMicrophonePermissionGuide, getMicrophonePermissionState, getRoomLatency, listAudioInputDevices, listAudioOutputDevices, requestMicrophonePermission, selectAudioOutputDevice, type AudioInputDevice, type AudioOutputDevice, type MicrophonePermissionState, type MicrophoneResources } from './lib/livekit'
+import { canSelectAudioOutputDevice, connectRoom, createProcessedMicrophone, createRoom, disposeMicrophone, fetchToken, getAudioOutputErrorMessage, getMicrophoneErrorMessage, getMicrophonePermissionGuide, getMicrophonePermissionState, getRoomLatency, listAudioInputDevices, listAudioOutputDevices, selectAudioOutputDevice, type AudioInputDevice, type AudioOutputDevice, type MicrophonePermissionState, type MicrophoneResources } from './lib/livekit'
 import { getDeviceProfile, saveDisplayName, type DeviceProfile } from './lib/device'
 import { checkForAppUpdate, getAppVersion, installAppUpdate, type AppUpdate, type AppUpdateDownloadEvent } from './lib/updater'
 import { RemoteAudio } from './components/RemoteAudio'
@@ -89,17 +89,6 @@ function getDefaultAudioDeviceName(devices: Array<AudioInputDevice | AudioOutput
   return deviceName.replace(/^(default|默认)\s*(?:-|—|：|:)\s*/i, '').trim() || '当前默认设备'
 }
 
-/** 将权限请求返回的真实麦克风名称回填到系统默认设备 */
-function mergeDefaultInputDevice(devices: AudioInputDevice[], permissionDevice: AudioInputDevice | null): AudioInputDevice[] {
-  if (!permissionDevice?.label) return devices
-  const hasDefaultDevice = devices.some((device) => device.deviceId === 'default')
-  const updatedDevices = devices.map((device) => device.deviceId === permissionDevice.deviceId || device.deviceId === 'default'
-    ? { ...device, label: permissionDevice.label, groupId: device.groupId || permissionDevice.groupId, hasLabel: true }
-    : device)
-  if (hasDefaultDevice) return updatedDevices
-  return [{ ...permissionDevice, deviceId: 'default' }, ...updatedDevices]
-}
-
 /** 语音聊天室主页面 */
 export default function App() {
   const [device, setDevice] = useState<DeviceProfile | null>(null)
@@ -140,7 +129,6 @@ export default function App() {
   const roomRef = useRef<Room | null>(null)
   const microphoneRef = useRef<MicrophoneResources | null>(null)
   const microphoneTestRef = useRef<MicrophoneTestResources | null>(null)
-  const hasRequestedAudioAccessRef = useRef(false)
   const availableUpdateRef = useRef<AppUpdate | null>(null)
   const updateCheckInProgressRef = useRef(false)
   const updateInstallInProgressRef = useRef(false)
@@ -254,33 +242,6 @@ export default function App() {
     }
   }, [])
 
-  /** 启动时检查麦克风授权并读取全部音频设备，仅在未授权时触发系统申请 */
-  const requestAudioAccess = useCallback(async () => {
-    setError('')
-    setIsLoadingDevices(true)
-    try {
-      const permissionState = await getMicrophonePermissionState()
-      if (permissionState === 'granted') {
-        setMicrophonePermission('granted')
-        const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
-        setAudioInputDevices(inputs)
-        setAudioOutputDevices(outputs)
-        return
-      }
-      const permissionDevice = await requestMicrophonePermission()
-      setMicrophonePermission('granted')
-      const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
-      setAudioInputDevices(mergeDefaultInputDevice(inputs, permissionDevice))
-      setAudioOutputDevices(outputs)
-    } catch (permissionError) {
-      setMicrophonePermission(await getMicrophonePermissionState())
-      setError(getMicrophoneErrorMessage(permissionError))
-      await refreshAudioDevices()
-    } finally {
-      setIsLoadingDevices(false)
-    }
-  }, [refreshAudioDevices])
-
   useEffect(() => {
     getDeviceProfile().then((profile) => {
       setDevice(profile)
@@ -293,13 +254,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!hasRequestedAudioAccessRef.current) {
-      hasRequestedAudioAccessRef.current = true
-      void requestAudioAccess()
-    }
+    void getMicrophonePermissionState().then(setMicrophonePermission)
+    void refreshAudioDevices()
     navigator.mediaDevices?.addEventListener('devicechange', refreshAudioDevices)
     return () => navigator.mediaDevices?.removeEventListener('devicechange', refreshAudioDevices)
-  }, [refreshAudioDevices, requestAudioAccess])
+  }, [refreshAudioDevices])
 
   /** 同步房间内参与者与远端音频轨道到 React 状态 */
   const syncRoomState = useCallback((room: Room) => {
