@@ -23,12 +23,10 @@ jobs:
         include:
           - name: macOS Universal
             platform: macos-latest
-            artifactName: macos-universal
             rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
             args: --target universal-apple-darwin --bundles app,dmg
           - name: Windows x64
             platform: windows-latest
-            artifactName: windows-x64
             rustTargets: ""
             args: --bundles nsis
 
@@ -69,14 +67,10 @@ jobs:
           releaseBody: 下载 macOS 或 Windows 安装包，已安装版本会自动检查后续更新
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: false
-
-      - name: 保存自动更新签名
-        uses: actions/upload-artifact@v4
-        with:
-          name: updater-signatures-${{ matrix.artifactName }}
-          path: src-tauri/target/**/bundle/**/*.sig
-          if-no-files-found: error
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          updaterJsonKeepUniversal: true
+          retryAttempts: 3
 
   release:
     name: 发布桌面端版本
@@ -85,53 +79,6 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: 下载双平台自动更新签名
-        uses: actions/download-artifact@v4
-        with:
-          pattern: updater-signatures-*
-          path: updater
-          merge-multiple: true
-
-      - name: 生成更新清单
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
-          mac_url=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name | endswith(".app.tar.gz")) | .browser_download_url')
-          windows_url=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name | endswith("-setup.exe")) | .browser_download_url')
-          mac_signature_file=$(find updater -name '*universal.app.tar.gz.sig' -print -quit)
-          windows_signature_file=$(find updater -name '*setup.exe.sig' -print -quit)
-          test -n "$mac_url" && test "$mac_url" != "null"
-          test -n "$windows_url" && test "$windows_url" != "null"
-          test -n "$mac_signature_file"
-          test -n "$windows_signature_file"
-          mac_signature=$(tr -d '\r\n' < "$mac_signature_file")
-          windows_signature=$(tr -d '\r\n' < "$windows_signature_file")
-          version=${GITHUB_REF_NAME#app-v}
-          pub_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-
-          jq -n \
-            --arg version "$version" \
-            --arg pub_date "$pub_date" \
-            --arg mac_url "$mac_url" \
-            --arg mac_signature "$mac_signature" \
-            --arg windows_url "$windows_url" \
-            --arg windows_signature "$windows_signature" \
-            '{
-              version: $version,
-              notes: "声屿桌面端更新",
-              pub_date: $pub_date,
-              platforms: {
-                "darwin-aarch64": { url: $mac_url, signature: $mac_signature },
-                "darwin-x86_64": { url: $mac_url, signature: $mac_signature },
-                "windows-x86_64": { url: $windows_url, signature: $windows_signature }
-              }
-            }' > latest.json
-
-          gh release upload "$GITHUB_REF_NAME" latest.json \
-            --clobber \
-            --repo "$GITHUB_REPOSITORY"
-
       - name: 发布完整 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
