@@ -79,6 +79,39 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: 将安装包地址切换到国内代理
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOWNLOAD_PROXY: https://gh-proxy.com/
+        run: |
+          release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
+          release_id=$(printf '%s' "$release_json" | jq -r '.id')
+          updater_asset_id=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name == "latest.json") | .id')
+          test -n "$updater_asset_id" && test "$updater_asset_id" != "null"
+
+          curl --fail --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/octet-stream" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$updater_asset_id" \
+            --output latest.json
+
+          jq --arg proxy "$DOWNLOAD_PROXY" '
+            .platforms |= with_entries(
+              .value.url = if (.value.url | startswith($proxy)) then .value.url else ($proxy + .value.url) end
+            )
+          ' latest.json > latest.proxied.json
+
+          curl --fail --request DELETE \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$updater_asset_id"
+
+          curl --fail --request POST \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary @latest.proxied.json \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=latest.json"
+
       - name: 发布完整 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

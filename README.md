@@ -30,10 +30,12 @@ git push origin app-v0.1.0
 
 - `TAURI_SIGNING_PRIVATE_KEY`：Tauri 更新签名私钥
 
-客户端启动后会读取 GitHub 最新 Release 的 `latest.json`，检测到新版本时询问用户并自动安装
+客户端启动后会通过国内 GitHub 加速地址读取最新 Release 的 `latest.json`，检测到新版本时询问用户并自动安装
 
 设置页会展示当前版本、更新状态、检查更新和立即更新入口，下载时展示安装进度
 
 Windows 使用 WebView2 运行界面，首次使用麦克风时由系统请求权限；更新安装使用被动模式并显示安装进度
+
+GitHub Actions 使用 Tauri 官方能力生成 `latest.json`，发布步骤会将其中的安装包地址统一转换为国内代理地址
 
 麦克风输入、全局输出和成员独立音量通过 Web Audio API 增益处理，最高支持 300%
