@@ -16,6 +16,7 @@ jobs:
   publish:
     name: 构建 ${{ matrix.name }}
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +24,7 @@ jobs:
           - name: macOS Universal
             platform: macos-latest
             rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
-            args: --target universal-apple-darwin --bundles dmg
+            args: --target universal-apple-darwin --bundles app,dmg
           - name: Windows x64
             platform: windows-latest
             rustTargets: ""
@@ -56,6 +57,7 @@ jobs:
       - name: 构建并发布安装包
         uses: tauri-apps/tauri-action@v0
         env:
+          CARGO_INCREMENTAL: 0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
@@ -63,6 +65,20 @@ jobs:
           tagName: app-v__VERSION__
           releaseName: 声屿 v__VERSION__
           releaseBody: 下载 macOS 或 Windows 安装包，已安装版本会自动检查后续更新
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          updaterJsonKeepUniversal: true
+
+  release:
+    name: 发布桌面端版本
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 发布完整 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --repo "$GITHUB_REPOSITORY"
