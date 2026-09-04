@@ -94,6 +94,14 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: 重写更新包下载地址
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p updater
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir updater --repo "$GITHUB_REPOSITORY"
+          sed -i 's#https://github.com/LZW0506/voice-room/releases/download/#https://gh-proxy.com/https://github.com/LZW0506/voice-room/releases/download/#g' updater/latest.json
+          gh release upload "$GITHUB_REF_NAME" updater/latest.json --clobber --repo "$GITHUB_REPOSITORY"
       - name: 发布完整 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
