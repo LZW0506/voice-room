@@ -1,6 +1,6 @@
 # 声屿前端
 
-这是独立的 React/Vite + Tauri 2 桌面客户端项目，仅发布 macOS 与 Windows 安装包
+这是独立的 React/Vite + Tauri 2 桌面客户端项目，仅发布 macOS Apple Silicon 与 Windows 安装包
 
 ```bash
 corepack enable
@@ -20,7 +20,7 @@ yarn tauri dev
 
 ## GitHub 自动打包与更新
 
-推送 `app-v` 开头的版本标签后，GitHub Actions 会生成 macOS Universal DMG 与 Windows x64 NSIS 安装包并发布 Release：
+推送 `app-v` 开头的版本标签后，GitHub Actions 会生成 macOS Apple Silicon DMG 与 Windows x64 NSIS 安装包并发布 Release：
 
 ```bash
 git tag app-v0.1.0
