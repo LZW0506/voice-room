@@ -1,12 +1,8 @@
 import { isTauri } from '@tauri-apps/api/core'
 import { LocalAudioTrack, Room, RoomEvent } from 'livekit-client'
 
-const TOKEN_URL = isTauri()
-  ? (import.meta.env.VITE_TAURI_TOKEN_URL || 'http://82.157.174.249:8787/api/token')
-  : (import.meta.env.VITE_TOKEN_URL || '/api/token')
-const LIVEKIT_URL = isTauri()
-  ? (import.meta.env.VITE_TAURI_LIVEKIT_URL || 'ws://82.157.174.249:7880')
-  : (import.meta.env.VITE_LIVEKIT_URL || `wss://${window.location.host}`)
+const TOKEN_URL = import.meta.env.VITE_TOKEN_URL || 'http://82.157.174.249:8787/api/token'
+const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://82.157.174.249:7880'
 
 /** Token 服务请求参数 */
 export interface TokenRequest {
@@ -233,7 +229,7 @@ export function createRoom(onDisconnected: () => void): Room {
 
 /** 连接到 LiveKit 房间 */
 export async function connectRoom(room: Room, credentials: TokenResponse): Promise<void> {
-  await room.connect(isTauri() ? (credentials.url || LIVEKIT_URL) : LIVEKIT_URL, credentials.token)
+  await room.connect(credentials.url || LIVEKIT_URL, credentials.token)
 }
 
 /** 读取 LiveKit 当前 WebRTC 连接的往返延迟

@@ -1,61 +1,68 @@
 name: 构建并发布桌面端
 
 on:
-  workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - "app-v*"
 
 permissions:
   contents: write
 
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
-    name: 构建 ${{ matrix.platform }}
+    name: 构建 ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            bundles: dmg
-          - platform: ubuntu-22.04
-            bundles: appimage
-          - platform: windows-latest
-            bundles: nsis
-    runs-on: ${{ matrix.platform }}
+          - name: macOS Universal
+            platform: macos-latest
+            rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin --bundles dmg
+          - name: Windows x64
+            platform: windows-latest
+            rustTargets: ""
+            args: --bundles nsis
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - name: 安装 Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rustTargets }}
 
-      - name: 安装 Linux 系统依赖
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: 缓存 Rust 构建产物
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          key: ${{ matrix.name }}
 
       - name: 安装前端依赖
         run: npm ci
 
-      - name: 构建并发布 GitHub Release
+      - name: 构建并发布安装包
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
-          args: --bundles ${{ matrix.bundles }}
-          tagName: v__VERSION__
+          args: ${{ matrix.args }}
+          tagName: app-v__VERSION__
           releaseName: 声屿 v__VERSION__
-          releaseBody: 下载与你的系统对应的安装包，已安装版本会自动检查后续更新
+          releaseBody: 下载 macOS 或 Windows 安装包，已安装版本会自动检查后续更新
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true

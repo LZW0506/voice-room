@@ -1,31 +1,29 @@
 # 声屿前端
 
-这是独立的 React/Vite + Tauri 2 桌面客户端项目，支持 macOS 与 Windows
+这是独立的 React/Vite + Tauri 2 桌面客户端项目，仅发布 macOS 与 Windows 安装包
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-网页端使用 1Panel 的 HTTPS 入口 `https://82.157.174.249:8004`，Tauri 客户端使用服务器的 HTTP 与 WebSocket 端口连接
+客户端直接连接服务器的 Gin Token 服务与 LiveKit 服务
 
 跨机器运行时，可以设置 `VITE_TOKEN_URL` 和 `VITE_LIVEKIT_URL`
 
 ```bash
-VITE_TOKEN_URL=/api/token \
-VITE_LIVEKIT_URL=wss://服务器地址:8004 \
-VITE_TAURI_TOKEN_URL=http://服务器地址:8787/api/token \
-VITE_TAURI_LIVEKIT_URL=ws://服务器地址:7880 \
+VITE_TOKEN_URL=http://82.157.174.249:8787/api/token \
+VITE_LIVEKIT_URL=ws://82.157.174.249:7880 \
 npm run tauri dev
 ```
 
 ## GitHub 自动打包与更新
 
-推送版本标签后，GitHub Actions 会为 macOS、Windows 和 Linux 生成安装包并发布 Release：
+推送 `app-v` 开头的版本标签后，GitHub Actions 会生成 macOS Universal DMG 与 Windows x64 NSIS 安装包并发布 Release：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag app-v0.1.0
+git push origin app-v0.1.0
 ```
 
 仓库需要配置以下 Actions Secrets：
