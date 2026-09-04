@@ -1184,6 +1184,11 @@ dayjs@^1.11.11:
   resolved "https://registry.npmmirror.com/dayjs/-/dayjs-1.11.23.tgz#b0a363506dde5f36cf5075e42ebe8115165a8c79"
   integrity sha512-QDTCU0M0MxR3hQfnlDJfwekQiaanm1ubOD231u73WBckQ/fsamwRLiE2GBz6D3a/xF1NgfiDLJjXBa1hYOYTtQ==
 
+deepfilternet3-assets@1.0.4:
+  version "1.0.4"
+  resolved "https://registry.npmmirror.com/deepfilternet3-assets/-/deepfilternet3-assets-1.0.4.tgz#6b2cda89ea9455147a73f5a905a4c40c48fa4c3a"
+  integrity sha512-a6kbnbPzwooy776sVKy/EzTkBHPTf0NTcmZfhHWYyNKuc2ZHEJa6QuIcwWfcks87xQqkk/yqfmTob228jB1UOg==
+
 debug@^4.1.0, debug@^4.3.1:
   version "4.4.3"
   resolved "https://registry.npmmirror.com/debug/-/debug-4.4.3.tgz#c6ae432d9bd9662582fce08709b038c58e9e3d6a"
