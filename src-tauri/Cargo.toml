@@ -1,6 +1,6 @@
 [package]
 name = "voice-room"
-version = "0.1.17"
+version = "0.1.20"
 description = "基于 LiveKit 的桌面语音聊天室"
 authors = ["Voice Room"]
 edition = "2021"
@@ -11,6 +11,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+cc = "1"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

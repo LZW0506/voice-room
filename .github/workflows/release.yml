@@ -71,7 +71,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           CARGO_INCREMENTAL: 0
-          ORT_PREFER_DYNAMIC_LINK: "1"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
