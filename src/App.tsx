@@ -254,11 +254,19 @@ export default function App() {
     }
   }, [])
 
-  /** 首次启动时请求麦克风权限并读取全部音频设备 */
+  /** 启动时检查麦克风授权并读取全部音频设备，仅在未授权时触发系统申请 */
   const requestAudioAccess = useCallback(async () => {
     setError('')
     setIsLoadingDevices(true)
     try {
+      const permissionState = await getMicrophonePermissionState()
+      if (permissionState === 'granted') {
+        setMicrophonePermission('granted')
+        const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
+        setAudioInputDevices(inputs)
+        setAudioOutputDevices(outputs)
+        return
+      }
       const permissionDevice = await requestMicrophonePermission()
       setMicrophonePermission('granted')
       const [inputs, outputs] = await Promise.all([listAudioInputDevices(), listAudioOutputDevices()])
