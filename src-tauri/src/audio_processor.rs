@@ -26,6 +26,7 @@ use tar::Archive;
 #[serde(rename_all = "camelCase")]
 pub enum InferenceBackend {
     /// Windows CPU 执行提供程序，底层由 ONNX Runtime 使用 SIMD 优化
+    #[cfg_attr(target_os = "macos", allow(dead_code))]
     WindowsOnnxRuntimeCpu,
     /// macOS Core ML 执行提供程序
     MacosCoreMl,
