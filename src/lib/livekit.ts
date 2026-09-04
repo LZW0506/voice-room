@@ -69,16 +69,27 @@ interface AudioOutputMediaDevices extends MediaDevices {
 
 /** 获取进入指定房间所需的 LiveKit 令牌 */
 export async function fetchToken(request: TokenRequest): Promise<TokenResponse> {
-  const response = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
+  let response: Response
+  try {
+    response = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+  } catch (error) {
+    throw new Error(`无法连接 Token 服务，请检查网络或服务器地址（${getNetworkErrorMessage(error)}）`)
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { message?: string }
     throw new Error(body.message || '无法获取房间通行证')
   }
   return response.json() as Promise<TokenResponse>
+}
+
+/** 将桌面 WebView 的网络异常转换为便于排查的短提示 */
+function getNetworkErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message
+  return '请求被系统拦截'
 }
 
 /** 创建带有回声消除、自动增益与可选降噪的麦克风轨道 */
