@@ -31,7 +31,7 @@ export async function playRoomSound(type: RoomSoundType, volume: number, muted: 
   const now = context.currentTime
   const gain = context.createGain()
   const oscillator = context.createOscillator()
-  const peak = Math.min(1, volume / 100) * 0.08
+  const peak = Math.min(3, volume / 100) * 0.08
   const frequencies = type === 'join' ? [523.25, 659.25] : [659.25, 523.25]
   const noteLength = 0.12
 

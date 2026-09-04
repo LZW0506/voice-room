@@ -108,4 +108,12 @@ button { cursor: pointer; }
 .settings-ant-modal .settings-panel .ant-slider { margin: 0; }
 .name-edit-form { display: flex; flex-direction: column; gap: 12px; }
 .toast-error { position: fixed; z-index: 20; top: 96px; left: 50%; width: min(560px, calc(100vw - 48px)); transform: translateX(-50%); }
+.toast-update { position: fixed; z-index: 19; top: 96px; right: 28px; width: min(390px, calc(100vw - 48px)); }
+.update-panel { padding: 18px 22px; }
+.version-setting-row, .update-status-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.version-setting-row > div { display: flex; align-items: center; gap: 12px; color: #858a93; font-size: 12px; }
+.version-setting-row strong { color: #e2e4e8; font: 12px 'DM Mono', monospace; }
+.update-status-row { margin-top: 16px; color: #858a93; font-size: 11px; }
+.update-panel .ant-progress { margin-top: 14px; }
+.update-notes { margin-top: 14px; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.08); color: #aab1bd; font-size: 11px; line-height: 1.7; white-space: pre-wrap; }
 @media (max-width: 1000px) { .topbar { padding: 0 30px; }.welcome-layout, .room-layout { padding-left: 30px; padding-right: 30px; }.welcome-layout { gap: 20px; }.room-layout { grid-template-columns: 1fr 245px; } }

@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+/** 客户端支持的最大音频增益百分比 */
+export const MAX_AUDIO_VOLUME = 300
+
 /** 客户端音频偏好实体 */
 export interface AudioPreferences {
   /** 当前选择的麦克风设备标识 */
@@ -56,9 +59,9 @@ const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
   autoGainControl: true,
 }
 
-/** 将音量限制在客户端支持的百分比范围内 */
+/** 将音量限制在客户端支持的增益范围内 */
 function normalizeVolume(volume: number): number {
-  return Math.max(0, Math.min(100, volume))
+  return Math.max(0, Math.min(MAX_AUDIO_VOLUME, volume))
 }
 
 /** 客户端持久化状态仓库 */

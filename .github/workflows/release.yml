@@ -23,10 +23,12 @@ jobs:
         include:
           - name: macOS Universal
             platform: macos-latest
+            artifactName: macos-universal
             rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
             args: --target universal-apple-darwin --bundles app,dmg
           - name: Windows x64
             platform: windows-latest
+            artifactName: windows-x64
             rustTargets: ""
             args: --bundles nsis
 
@@ -69,6 +71,13 @@ jobs:
           prerelease: false
           includeUpdaterJson: false
 
+      - name: 保存自动更新签名
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-signatures-${{ matrix.artifactName }}
+          path: src-tauri/target/**/bundle/**/*.sig
+          if-no-files-found: error
+
   release:
     name: 发布桌面端版本
     needs: publish
@@ -76,21 +85,26 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: 生成双平台自动更新清单
+      - name: 下载双平台自动更新签名
+        uses: actions/download-artifact@v4
+        with:
+          pattern: updater-signatures-*
+          path: updater
+          merge-multiple: true
+
+      - name: 生成更新清单
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir updater
-          gh release download "$GITHUB_REF_NAME" \
-            --pattern '*.sig' \
-            --dir updater \
-            --repo "$GITHUB_REPOSITORY"
-
           release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
           mac_url=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name | endswith(".app.tar.gz")) | .browser_download_url')
           windows_url=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name | endswith("-setup.exe")) | .browser_download_url')
           mac_signature_file=$(find updater -name '*universal.app.tar.gz.sig' -print -quit)
           windows_signature_file=$(find updater -name '*setup.exe.sig' -print -quit)
+          test -n "$mac_url" && test "$mac_url" != "null"
+          test -n "$windows_url" && test "$windows_url" != "null"
+          test -n "$mac_signature_file"
+          test -n "$windows_signature_file"
           mac_signature=$(tr -d '\r\n' < "$mac_signature_file")
           windows_signature=$(tr -d '\r\n' < "$windows_signature_file")
           version=${GITHUB_REF_NAME#app-v}

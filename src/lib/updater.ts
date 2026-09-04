@@ -1,23 +1,28 @@
+import { getVersion } from '@tauri-apps/api/app'
 import { isTauri } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
-import { check } from '@tauri-apps/plugin-updater'
+import { check, type Update, type DownloadEvent } from '@tauri-apps/plugin-updater'
 
-let updateCheckStarted = false
+/** Tauri 检测到的桌面应用更新实体 */
+export type AppUpdate = Update
 
-/** 启动桌面应用后检查 GitHub Release 中的新版本并由用户确认安装 */
-export async function checkForAppUpdate(): Promise<void> {
-  if (!isTauri() || updateCheckStarted) return
-  updateCheckStarted = true
+/** 桌面应用更新下载事件实体 */
+export type AppUpdateDownloadEvent = DownloadEvent
 
-  const update = await check()
-  if (!update) return
+/** 获取当前桌面应用版本号 */
+export async function getAppVersion(): Promise<string> {
+  if (!isTauri()) return '开发版'
+  return getVersion()
+}
 
-  const shouldInstall = window.confirm(`发现声屿新版本 ${update.version}\n\n是否立即下载并安装？`)
-  if (!shouldInstall) {
-    await update.close()
-    return
-  }
+/** 检查 GitHub Release 中是否存在新版本 */
+export async function checkForAppUpdate(): Promise<Update | null> {
+  if (!isTauri()) return null
+  return check()
+}
 
-  await update.downloadAndInstall()
+/** 下载并安装指定版本的桌面应用更新 */
+export async function installAppUpdate(update: Update, onEvent?: (event: DownloadEvent) => void): Promise<void> {
+  await update.downloadAndInstall(onEvent)
   if (!navigator.userAgent.toLowerCase().includes('windows')) await relaunch()
 }
