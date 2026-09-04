@@ -3,8 +3,9 @@
 这是独立的 React/Vite + Tauri 2 桌面客户端项目，仅发布 macOS 与 Windows 安装包
 
 ```bash
-npm install
-npm run tauri dev
+corepack enable
+yarn install
+yarn tauri dev
 ```
 
 客户端直接连接服务器的 Gin Token 服务与 LiveKit 服务
@@ -14,7 +15,7 @@ npm run tauri dev
 ```bash
 VITE_TOKEN_URL=http://82.157.174.249:8787/api/token \
 VITE_LIVEKIT_URL=ws://82.157.174.249:7880 \
-npm run tauri dev
+yarn tauri dev
 ```
 
 ## GitHub 自动打包与更新

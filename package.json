@@ -1,8 +1,9 @@
 {
   "name": "voice-room-frontend",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

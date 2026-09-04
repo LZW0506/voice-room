@@ -29,7 +29,7 @@ jobs:
             platform: windows-latest
             rustTargets: ""
             args: --bundles nsis
-      max-parallel: 1
+      max-parallel: 2
 
     steps:
       - name: 检出代码
@@ -39,15 +39,18 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: 启用 Yarn
+        run: corepack enable && corepack prepare yarn@1.22.22 --activate
 
       - name: 缓存前端依赖目录
-        id: npm-modules-cache
+        id: yarn-modules-cache
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-${{ hashFiles('yarn.lock') }}
 
       - name: 安装 Rust
         uses: dtolnay/rust-toolchain@stable
@@ -61,8 +64,8 @@ jobs:
           key: ${{ matrix.name }}
 
       - name: 安装前端依赖
-        if: steps.npm-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit --no-fund
+        if: steps.yarn-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
 
       - name: 构建并发布安装包
         uses: tauri-apps/tauri-action@v0
@@ -71,6 +74,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
+          tauriScript: yarn tauri
           args: ${{ matrix.args }}
           tagName: app-v__VERSION__
           releaseName: 声屿 v__VERSION__
@@ -90,39 +94,6 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: 将安装包地址切换到国内代理
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOWNLOAD_PROXY: https://gh-proxy.com/
-        run: |
-          release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
-          release_id=$(printf '%s' "$release_json" | jq -r '.id')
-          updater_asset_id=$(printf '%s' "$release_json" | jq -r '.assets[] | select(.name == "latest.json") | .id')
-          test -n "$updater_asset_id" && test "$updater_asset_id" != "null"
-
-          curl --fail --location \
-            --header "Authorization: Bearer $GH_TOKEN" \
-            --header "Accept: application/octet-stream" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$updater_asset_id" \
-            --output latest.json
-
-          jq --arg proxy "$DOWNLOAD_PROXY" '
-            .platforms |= with_entries(
-              .value.url = if (.value.url | startswith($proxy)) then .value.url else ($proxy + .value.url) end
-            )
-          ' latest.json > latest.proxied.json
-
-          curl --fail --request DELETE \
-            --header "Authorization: Bearer $GH_TOKEN" \
-            --header "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$updater_asset_id"
-
-          curl --fail --request POST \
-            --header "Authorization: Bearer $GH_TOKEN" \
-            --header "Content-Type: application/octet-stream" \
-            --data-binary @latest.proxied.json \
-            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=latest.json"
-
       - name: 发布完整 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
