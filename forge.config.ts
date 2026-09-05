@@ -1,7 +1,4 @@
-import { MakerDeb } from '@electron-forge/maker-deb'
-import { MakerRpm } from '@electron-forge/maker-rpm'
 import { MakerSquirrel } from '@electron-forge/maker-squirrel'
-import { MakerZIP } from '@electron-forge/maker-zip'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import type { ForgeConfig } from '@electron-forge/shared-types'
@@ -9,10 +6,17 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true
+    asar: true,
+    executableName: 'voice-island',
+    appBundleId: 'com.voiceisland.app'
   },
   rebuildConfig: {},
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
+  makers: [
+    new MakerSquirrel({
+      name: 'voice_island',
+      setupExe: 'VoiceIsland-Setup.exe'
+    })
+  ],
   plugins: [
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
@@ -30,16 +34,7 @@ const config: ForgeConfig = {
           target: 'preload'
         }
       ],
-      renderer: [
-        {
-          name: 'main_window',
-          config: 'vite.renderer.config.ts'
-        },
-        {
-          name: 'login_window',
-          config: 'vite.renderer.config.ts'
-        }
-      ]
+      renderer: [{ name: 'main_window', config: 'vite.renderer.config.ts' }]
     }),
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application

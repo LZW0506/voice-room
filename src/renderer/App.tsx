@@ -1,23 +1,24 @@
 import router from '@renderer/router'
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, theme } from 'antd'
 import { RouterProvider } from 'react-router-dom'
-import { useAppSelector } from './store/hooks'
 const App: React.FC = () => {
-  const antdLang = useAppSelector((state) => state.antd)
   return (
     <>
       <ConfigProvider
         theme={{
-          cssVar: true,
+          algorithm: theme.darkAlgorithm,
+          cssVar: {},
           token: {
-            colorPrimary: '#3f72af',
-            colorInfo: '#5b7fa3',
-            colorSuccess: '#83cc5e',
-            colorTextBase: '#212121',
-            borderRadius: 5
+            colorPrimary: '#f2c94c',
+            colorInfo: '#f2c94c',
+            colorSuccess: '#7bc47f',
+            colorTextBase: '#f5f1e8',
+            colorBgBase: '#151515',
+            colorBgContainer: '#1e1e1e',
+            colorBorder: '#3b3b3b',
+            borderRadius: 8
           }
         }}
-        locale={antdLang}
       >
         <RouterProvider router={router} />
       </ConfigProvider>

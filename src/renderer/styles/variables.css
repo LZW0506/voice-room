@@ -1,9 +1,9 @@
 :root {
   /* 整个背景色 */
-  --base: #f0f5f9;
+  --base: #151515;
   /* 主要色 */
-  --primary: #3f72af;
+  --primary: #f2c94c;
   /* 文本色 */
-  --text-base: #212121;
-  --header-height: 36px;
+  --text-base: #f5f1e8;
+  --header-height: 44px;
 }

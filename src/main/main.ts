@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import started from 'electron-squirrel-startup'
 import createMainWindow from './window/mainWindow'
 
@@ -11,6 +11,10 @@ app.enableSandbox()
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => permission === 'media')
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) =>
+    callback(permission === 'media')
+  )
   createMainWindow()
 })
 

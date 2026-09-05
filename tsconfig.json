@@ -7,15 +7,12 @@
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "paths": {
-      "@renderer/*": ["src/renderer/*"],
-      "@main/*": ["src/main/*"]
-    },
-    "types": ["vite-plugin-svg-icons/client"]
+      "@renderer/*": ["./src/renderer/*"],
+      "@main/*": ["./src/main/*"]
+    }
   }
 }

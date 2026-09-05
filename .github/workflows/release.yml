@@ -1,0 +1,43 @@
+name: 发布 Windows 安装包
+
+on:
+  push:
+    tags:
+      - 'app-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: 构建 Windows x64
+    runs-on: windows-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: 安装依赖
+        run: yarn install --frozen-lockfile
+
+      - name: 类型和代码检查
+        run: |
+          yarn lint
+          yarn tsc --noEmit
+
+      - name: 生成 Squirrel.Windows 安装包
+        run: yarn make --arch=x64
+
+      - name: 发布 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/squirrel.windows/x64/*.exe
+            out/make/squirrel.windows/x64/RELEASES
+            out/make/squirrel.windows/x64/*.nupkg
+          generate_release_notes: true
