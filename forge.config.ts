@@ -7,7 +7,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    executableName: 'voice-island',
+    executableName: '声屿',
     appBundleId: 'com.voiceisland.app',
     // 使用旧项目确认过的图标资源，确保应用和安装程序使用同一套 Windows 图标
     icon: './assets/icon'
