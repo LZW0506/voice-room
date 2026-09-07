@@ -405,12 +405,13 @@ body {
   align-items: center;
   gap: 7px;
   color: #928b7d;
+  font-size: 19px;
 }
 .speaker-muted-icon {
   position: relative;
   display: inline-flex;
-  width: 1em;
-  height: 1em;
+  width: 1.15em;
+  height: 1.15em;
   align-items: center;
   justify-content: center;
 }
@@ -419,11 +420,17 @@ body {
 }
 .speaker-muted-icon > i {
   position: absolute;
-  width: 2px;
+  width: 2.5px;
   height: 125%;
   border-radius: 2px;
   background: currentColor;
   transform: rotate(-45deg);
+}
+.member-list-icons {
+  font-size: 18px;
+}
+.room-audio-control .anticon {
+  font-size: 22px;
 }
 .speaking-state {
   display: flex;
