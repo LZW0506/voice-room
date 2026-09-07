@@ -1,7 +1,8 @@
 import { app, autoUpdater, ipcMain, type BrowserWindow } from 'electron'
 
 /** GitHub Release 中 Squirrel.Windows 更新清单的默认地址 */
-const DEFAULT_UPDATE_URL = 'https://github.com/LZW0506/voice-room/releases/latest/download'
+// 代理地址沿用旧项目，避免国内网络直连 GitHub 时被中途断开
+const DEFAULT_UPDATE_URL = 'https://githubdog.com/https://github.com/LZW0506/voice-room/releases/latest/download'
 
 /** 注册 Squirrel.Windows 自动更新相关 IPC 方法 */
 export default (getWindow: () => BrowserWindow | null) => {

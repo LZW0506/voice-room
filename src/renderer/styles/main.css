@@ -406,6 +406,25 @@ body {
   gap: 7px;
   color: #928b7d;
 }
+.speaker-muted-icon {
+  position: relative;
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+}
+.speaker-muted-icon > svg {
+  display: block;
+}
+.speaker-muted-icon > i {
+  position: absolute;
+  width: 2px;
+  height: 125%;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
 .speaking-state {
   display: flex;
   min-height: 13px;

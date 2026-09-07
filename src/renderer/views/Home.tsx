@@ -4,7 +4,6 @@ import {
   EditOutlined,
   LoginOutlined,
   LogoutOutlined,
-  MutedOutlined,
   SettingOutlined,
   SoundOutlined,
   WifiOutlined
@@ -127,7 +126,7 @@ function AudioControlButton({ kind, muted, volume, onToggle, onVolumeChange }: A
   const isInput = kind === 'input'
   const channelName = isInput ? '麦克风输入' : '声音输出'
   const enabledIcon = isInput ? <AudioOutlined /> : <SoundOutlined />
-  const disabledIcon = isInput ? <AudioMutedOutlined /> : <MutedOutlined />
+  const disabledIcon = isInput ? <AudioMutedOutlined /> : <SpeakerMutedIcon />
   return (
     <Popover
       placement="top"
@@ -162,6 +161,16 @@ function AudioControlButton({ kind, muted, volume, onToggle, onVolumeChange }: A
         icon={muted ? disabledIcon : enabledIcon}
       />
     </Popover>
+  )
+}
+
+/** 展示带斜线的扬声器关闭图标 */
+function SpeakerMutedIcon() {
+  return (
+    <span className="speaker-muted-icon" aria-hidden="true">
+      <SoundOutlined />
+      <i />
+    </span>
   )
 }
 
@@ -1106,7 +1115,7 @@ const Home: React.FC = () => {
                     {(participant.muted || participant.outputMuted) && (
                       <div className="participant-icons">
                         {participant.muted && <AudioMutedOutlined aria-label="麦克风已关闭" />}
-                        {participant.outputMuted && <MutedOutlined aria-label="声音输出已关闭" />}
+                        {participant.outputMuted && <SpeakerMutedIcon />}
                       </div>
                     )}
                   </div>
@@ -1162,7 +1171,7 @@ const Home: React.FC = () => {
                           {(participant.muted || participant.outputMuted) && (
                             <span className="member-list-icons">
                               {participant.muted && <AudioMutedOutlined aria-label="麦克风已关闭" />}
-                              {participant.outputMuted && <MutedOutlined aria-label="声音输出已关闭" />}
+                              {participant.outputMuted && <SpeakerMutedIcon />}
                             </span>
                           )}
                         </div>
