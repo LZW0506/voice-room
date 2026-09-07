@@ -1,24 +1,29 @@
-import { app, autoUpdater, ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, type BrowserWindow } from 'electron'
+import { autoUpdater } from 'electron-updater'
 
-/** GitHub Release 中 Squirrel.Windows 更新清单的默认地址 */
-// 代理地址沿用旧项目，避免国内网络直连 GitHub 时被中途断开
+/** GitHub Release 中 electron-updater 清单的默认代理地址 */
 const DEFAULT_UPDATE_URL = 'https://githubdog.com/https://github.com/LZW0506/voice-room/releases/latest/download'
 
-/** 注册 Squirrel.Windows 自动更新相关 IPC 方法 */
+/** 注册 NSIS 与 electron-updater 自动更新相关 IPC 方法 */
 export default (getWindow: () => BrowserWindow | null) => {
+  const configured = process.platform === 'win32' && app.isPackaged
   const updateUrl = process.env.VITE_UPDATE_URL || DEFAULT_UPDATE_URL
-  let configured = false
-  if (updateUrl && process.platform === 'win32') {
-    autoUpdater.setFeedURL({ url: updateUrl })
-    configured = true
+  if (configured && process.env.VITE_UPDATE_URL) {
+    autoUpdater.setFeedURL({ provider: 'generic', url: updateUrl })
   }
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = false
 
-  autoUpdater.on('update-available', () => {
+  autoUpdater.on('update-available', (info) => {
     getWindow()?.webContents.send('app:update-progress', 0)
+    getWindow()?.webContents.send('app:update-available', info.version)
   })
-  autoUpdater.on('update-downloaded', (_event, _releaseNotes, releaseName) => {
+  autoUpdater.on('download-progress', (progress) => {
+    getWindow()?.webContents.send('app:update-progress', progress.percent)
+  })
+  autoUpdater.on('update-downloaded', (info) => {
     getWindow()?.webContents.send('app:update-progress', 100)
-    getWindow()?.webContents.send('app:update-downloaded', releaseName)
+    getWindow()?.webContents.send('app:update-downloaded', info.version)
   })
   autoUpdater.on('error', (error) => {
     getWindow()?.webContents.send('app:update-error', error.message)
@@ -61,8 +66,8 @@ export default (getWindow: () => BrowserWindow | null) => {
   })
   ipcMain.handle('app:download-update', async () => {
     if (!configured) throw new Error('当前未配置更新服务')
-    // Squirrel.Windows 在检查到更新后会自动下载，此方法用于兼容设置页的显式下载操作
-    autoUpdater.checkForUpdates()
+    // electron-updater 检查到更新后会自动下载，页面只需等待下载完成事件
+    await autoUpdater.downloadUpdate()
     return true
   })
   ipcMain.handle('app:quit-and-install', () => {

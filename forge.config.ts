@@ -1,4 +1,4 @@
-import { MakerSquirrel } from '@electron-forge/maker-squirrel'
+import MakerNSIS from '@electron-addons/electron-forge-maker-nsis'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import type { ForgeConfig } from '@electron-forge/shared-types'
@@ -14,11 +14,12 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({
-      name: 'voice-island-windows-x64',
-      setupExe: 'voice-island-windows-x64-0.2.2-Setup.exe',
-      setupIcon: './assets/icon.ico',
-      iconUrl: 'https://raw.githubusercontent.com/LZW0506/voice-room/main/assets/icon.ico'
+    new MakerNSIS({
+      updater: {
+        url: 'https://githubdog.com/https://github.com/LZW0506/voice-room/releases/latest/download',
+        channel: 'latest',
+        updaterCacheDirName: 'voice-island-updater'
+      }
     })
   ],
   plugins: [

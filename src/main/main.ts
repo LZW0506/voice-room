@@ -1,5 +1,4 @@
 import { app, BrowserWindow, session } from 'electron'
-import started from 'electron-squirrel-startup'
 import createMainWindow from './window/mainWindow'
 
 // Windows 安装程序可能通过快捷方式重复启动，单实例锁可避免多个房间连接同时运行
@@ -15,10 +14,6 @@ if (!singleInstanceLock) {
   })
 }
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-  app.quit()
-}
 app.enableSandbox()
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
