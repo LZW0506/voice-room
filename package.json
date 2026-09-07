@@ -1,7 +1,7 @@
 {
   "name": "voice-island",
   "productName": "声屿",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "基于 WebRTC 和 LiveKit 的桌面语音聊天室",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -55,6 +55,7 @@
   "license": "MIT",
   "build": {
     "appId": "com.voiceisland.app",
+    "executableName": "voice-island",
     "artifactName": "voice-island-windows-x64-${version}.${ext}",
     "win": {
       "icon": "assets/icon.ico",
