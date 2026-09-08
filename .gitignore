@@ -91,4 +91,9 @@ typings/
 # Electron-Forge
 out/
 
+# Native helper build and platform resources
+native/noise-reduction/target/
+native/resources/
+pnpm-lock.yaml
+
 package-lock.json

@@ -1,4 +1,5 @@
 import { AudioOutlined, ReloadOutlined } from '@ant-design/icons'
+import type { NoiseReductionMode } from '@renderer/store'
 import { Button, Input, Modal, Progress, Select, Slider, Switch, Tabs } from 'antd'
 import { useEffect, useState } from 'react'
 
@@ -12,8 +13,8 @@ export interface SettingsAudioPreferences {
   inputVolume: number
   /** 输出音量百分比 */
   outputVolume: number
-  /** 是否启用降噪 */
-  noiseSuppression: boolean
+  /** 当前降噪方案 */
+  noiseReductionMode: NoiseReductionMode
   /** 降噪强度百分比 */
   noiseReductionLevel: number
   /** 是否启用回声抵消 */
@@ -66,6 +67,10 @@ export interface SettingsModalProps {
   devices: SettingsAudioDevices
   /** 当前音频偏好 */
   preferences: SettingsAudioPreferences
+  /** 当前系统平台 */
+  platform: string
+  /** 当前平台的降噪能力 */
+  noiseCapabilities: NoiseReductionCapabilities | null
   /** 修改音频偏好回调 */
   onChangePreferences: (patch: Partial<SettingsAudioPreferences>) => void
   /** 刷新设备回调 */
@@ -130,33 +135,6 @@ function VolumeSetting({
   )
 }
 
-/** 设置页音频开关 */
-function AudioToggle({
-  label,
-  description,
-  value,
-  onChange
-}: {
-  /** 设置项名称 */
-  label: string
-  /** 设置项说明 */
-  description: string
-  /** 当前开关状态 */
-  value: boolean
-  /** 开关变化回调 */
-  onChange: (value: boolean) => void
-}) {
-  return (
-    <div className="audio-toggle">
-      <span>
-        <strong>{label}</strong>
-        <small>{description}</small>
-      </span>
-      <Switch checked={value} onChange={onChange} />
-    </div>
-  )
-}
-
 /** 将麦克风输入电平转换为测试条数量 */
 function getMeterCount(level: number): number {
   return Math.min(36, Math.max(0, Math.round(level * 36)))
@@ -168,6 +146,8 @@ export default function SettingsModal({
   onClose,
   devices,
   preferences,
+  platform,
+  noiseCapabilities,
   onChangePreferences,
   onRefreshDevices,
   isTestingMicrophone,
@@ -193,6 +173,30 @@ export default function SettingsModal({
     onChangeDisplayName(normalized)
     setDisplayNameDraft(normalized)
   }
+
+  /** 获取当前平台可用的降噪方案选项 */
+  const noiseReductionOptions =
+    platform === 'darwin'
+      ? [
+          { value: 'off', label: '关闭' },
+          { value: 'webrtc', label: 'WebRTC' },
+          { value: 'onnx-cpu', label: 'DeepFilterNet（CPU）' }
+        ]
+      : [
+          { value: 'off', label: '关闭' },
+          { value: 'webrtc', label: 'WebRTC' },
+          { value: 'onnx-cpu', label: 'DeepFilterNet（CPU）' }
+        ]
+  const availableNoiseReductionOptions = noiseReductionOptions.map((option) => {
+    const capability = noiseCapabilities?.providers[option.value as NoiseReductionMode]
+    return {
+      ...option,
+      disabled: capability?.available === false,
+      label: capability?.available === false ? `${option.label}（不可用）` : option.label,
+      title: capability?.reason
+    }
+  })
+  const nativeNoiseReduction = preferences.noiseReductionMode === 'onnx-cpu'
 
   const deviceSettings = (
     <section className="settings-section">
@@ -265,25 +269,41 @@ export default function SettingsModal({
           value={preferences.outputVolume}
           onChange={(value) => onChangePreferences({ outputVolume: value })}
         />
-        <AudioToggle
-          label="语音降噪"
-          description="DeepFilterNet3 WebAssembly 本地处理"
-          value={preferences.noiseSuppression}
-          onChange={(value) => onChangePreferences({ noiseSuppression: value })}
-        />
+        <div className="device-setting-row">
+          <label htmlFor="noise-reduction-mode">语音降噪</label>
+          <div className="device-select-wrap">
+            <Select
+              id="noise-reduction-mode"
+              value={preferences.noiseReductionMode}
+              options={availableNoiseReductionOptions}
+              onChange={(value: NoiseReductionMode) => onChangePreferences({ noiseReductionMode: value })}
+            />
+          </div>
+        </div>
         <VolumeSetting
           label="降噪强度"
           value={preferences.noiseReductionLevel}
           max={100}
-          disabled={!preferences.noiseSuppression}
+          disabled={!nativeNoiseReduction}
           onChange={(value) => onChangePreferences({ noiseReductionLevel: value })}
         />
-        <AudioToggle
-          label="回音抵消"
-          description="使用 WebRTC 音频处理减少扬声器声音回到麦克风"
-          value={preferences.echoCancellation}
-          onChange={(value) => onChangePreferences({ echoCancellation: value })}
-        />
+        <div className="audio-toggle">
+          <span>
+            <strong>回音抵消</strong>
+            <small>使用 WebRTC 音频处理减少扬声器声音回到麦克风</small>
+          </span>
+          <Switch
+            checked={preferences.echoCancellation}
+            onChange={(value) => onChangePreferences({ echoCancellation: value })}
+          />
+        </div>
+        {(preferences.noiseReductionMode === 'webrtc' || preferences.noiseReductionMode === 'off') && (
+          <small className="device-permission-note">
+            {preferences.noiseReductionMode === 'webrtc'
+              ? '当前使用 Chromium 内置 WebRTC 降噪，降噪强度由系统自动控制'
+              : '当前未启用降噪'}
+          </small>
+        )}
       </div>
     </section>
   )

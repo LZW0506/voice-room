@@ -22,6 +22,9 @@ jobs:
           node-version: 22
           cache: yarn
 
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: 安装依赖
         run: yarn install --frozen-lockfile
 
@@ -35,6 +38,8 @@ jobs:
 
       - name: 发布 GitHub Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             out/make/nsis/x64/*.exe

@@ -1,0 +1,13 @@
+[package]
+name = "voice-noise-helper"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+deep_filter = { git = "https://github.com/Rikorose/DeepFilterNet.git", rev = "d375b2d8309e0935d165700c91da9de862a99c31", package = "deep_filter", default-features = false }
+flate2 = "1"
+ini = { package = "rust-ini", version = "0.21" }
+ort = { version = "2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "tls-rustls", "api-27"] }
+tar = "0.4"

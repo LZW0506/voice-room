@@ -6,9 +6,11 @@
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
-    "build": "tsc --noEmit && electron-forge package",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "native:prepare": "node scripts/prepare-native-resources.mjs",
+    "native:test": "node scripts/test-native-helper.mjs",
+    "build": "yarn native:prepare && tsc --noEmit && electron-forge package",
+    "package": "yarn native:prepare && electron-forge package",
+    "make": "yarn native:prepare && electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
@@ -18,6 +20,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.6.0",
     "@electron-forge/plugin-fuses": "^7.6.0",
     "@electron-forge/plugin-vite": "^7.6.0",
+    "@electron-forge/shared-types": "7.11.2",
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9.16.0",
     "@types/react": "^18.3.14",

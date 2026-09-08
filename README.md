@@ -21,6 +21,15 @@ yarn start
 - `VITE_LIVEKIT_URL`：Token 服务未返回地址时使用的 LiveKit 地址
 - `VITE_UPDATE_URL`：electron-updater 的 generic 更新目录地址
 
+## 语音降噪方案
+
+设置页按操作系统提供互斥的降噪选项：
+
+- Windows：关闭、WebRTC、DeepFilterNet（CPU）
+- macOS：关闭、WebRTC、DeepFilterNet（CPU）
+
+选择 WebRTC 时使用 Chromium 的 `getUserMedia` 内置降噪；选择关闭时不启用降噪。两者都不会启动原生模型引擎，降噪强度只对原生模型选项开放。CPU helper 使用 ONNX Runtime 和 DeepFilterNet 官方 ONNX 模型，可在 Windows 和 macOS 上共用
+
 默认更新源为 GitHub Release 的 `latest.yml` 目录地址，也可以通过 `VITE_UPDATE_URL` 覆盖
 
 ## 构建
@@ -38,6 +47,12 @@ yarn make --arch=x64
 ```
 
 构建产物位于 `out/make/nsis/x64`
+
+本地离线打包时，可将 `ELECTRON_ZIP_DIR` 指向包含目标 Electron ZIP 的缓存目录，例如 macOS arm64：
+
+```bash
+ELECTRON_ZIP_DIR="$HOME/Library/Caches/electron/<缓存目录>" yarn package
+```
 
 ## 自动发布
 

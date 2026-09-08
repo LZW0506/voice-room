@@ -3,12 +3,20 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import type { ForgeConfig } from '@electron-forge/shared-types'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
+import path from 'node:path'
+
+const nativePlatform = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : process.platform
+const nativeResourcePath = path.join(__dirname, 'native', 'resources', nativePlatform, process.arch)
+const electronZipDir = process.env.ELECTRON_ZIP_DIR
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     executableName: '声屿',
     appBundleId: 'com.voiceisland.app',
+    extraResource: [nativeResourcePath],
+    // 本地可指定已缓存的 Electron ZIP，CI 未设置时仍由 Forge 正常下载
+    ...(electronZipDir ? { electronZipDir } : {}),
     // 使用旧项目确认过的图标资源，确保应用和安装程序使用同一套 Windows 图标
     icon: './assets/icon'
   },

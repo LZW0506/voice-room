@@ -9,8 +9,9 @@ import {
   WifiOutlined
 } from '@ant-design/icons'
 import SettingsModal, { type SettingsAudioDevice, type SettingsUpdateState } from '@renderer/components/Settings'
-import useClientStore from '@renderer/store'
+import useClientStore, { isNativeNoiseReductionMode } from '@renderer/store'
 import { playRoomSound, prepareRoomSound } from '@renderer/utils/roomSound'
+import { createNoiseProcessor } from '@renderer/utils/noiseProcessor'
 import {
   checkWebRtcSupport,
   createDefaultDisplayName,
@@ -71,6 +72,10 @@ interface LocalInputPipeline {
   gain: GainNode
   /** 处理后媒体流输出节点 */
   destination: MediaStreamAudioDestinationNode
+  /** 原生降噪工作节点 */
+  noiseProcessor: AudioWorkletNode | null
+  /** 是否由主进程启动了原生降噪 helper */
+  nativeNoise: boolean
   /** 发布到 LiveKit 的音频轨道 */
   track: LocalAudioTrack
 }
@@ -259,6 +264,7 @@ const Home: React.FC = () => {
   const [participants, setParticipants] = useState<ParticipantItem[]>([])
   const [error, setError] = useState('')
   const [supportError, setSupportError] = useState('')
+  const [noiseCapabilities, setNoiseCapabilities] = useState<NoiseReductionCapabilities | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [nicknameOpen, setNicknameOpen] = useState(false)
   const [nicknameDraft, setNicknameDraft] = useState('')
@@ -296,7 +302,8 @@ const Home: React.FC = () => {
   const setRoomName = useClientStore((state) => state.setRoomName)
   const outputVolume = useClientStore((state) => state.outputVolume)
   const inputVolume = useClientStore((state) => state.inputVolume)
-  const noiseSuppression = useClientStore((state) => state.noiseSuppression)
+  const platform = useClientStore((state) => state.platform)
+  const noiseReductionMode = useClientStore((state) => state.noiseReductionMode)
   const echoCancellation = useClientStore((state) => state.echoCancellation)
   const noiseReductionLevel = useClientStore((state) => state.noiseReductionLevel)
   const inputDeviceId = useClientStore((state) => state.inputDeviceId)
@@ -309,6 +316,14 @@ const Home: React.FC = () => {
     () => [...participants].sort((first, second) => first.identity.localeCompare(second.identity)),
     [participants]
   )
+
+  /** 初始化当前平台的降噪能力状态 */
+  useEffect(() => {
+    void window.noiseReduction
+      .getCapabilities()
+      .then(setNoiseCapabilities)
+      .catch(() => setNoiseCapabilities(null))
+  }, [])
 
   /** 刷新当前房间成员列表 */
   const refreshParticipants = () => {
@@ -452,7 +467,7 @@ const Home: React.FC = () => {
           channelCount: 1,
           sampleRate: 48000,
           echoCancellation,
-          noiseSuppression
+          noiseSuppression: noiseReductionMode === 'webrtc'
         }
       })
       const context = new AudioContext({ latencyHint: 'interactive' })
@@ -491,7 +506,7 @@ const Home: React.FC = () => {
       stopMicrophoneTest()
       setError(formatWebRtcError(testError))
     }
-  }, [echoCancellation, inputDeviceId, isTestingMicrophone, noiseSuppression, outputVolume, stopMicrophoneTest])
+  }, [echoCancellation, inputDeviceId, isTestingMicrophone, noiseReductionMode, outputVolume, stopMicrophoneTest])
 
   /** 停止本机麦克风输入处理链并释放媒体资源 */
   const stopLocalInputPipeline = useCallback(async () => {
@@ -503,8 +518,10 @@ const Home: React.FC = () => {
     if (currentRoom) await currentRoom.localParticipant.unpublishTrack(pipeline.track, true)
     pipeline.stream.getTracks().forEach((track) => track.stop())
     pipeline.source.disconnect()
+    pipeline.noiseProcessor?.disconnect()
     pipeline.gain.disconnect()
     await pipeline.context.close()
+    if (pipeline.nativeNoise) await window.noiseReduction.stop()
   }, [stopLocalSpeakingMonitor])
 
   /** 创建带输入增益的麦克风轨道并发布到当前房间 */
@@ -514,28 +531,69 @@ const Home: React.FC = () => {
       if (!currentRoom) throw new Error('当前未连接到房间')
       await stopLocalInputPipeline()
       const currentPreferences = useClientStore.getState()
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: deviceId === 'default' ? undefined : { exact: deviceId },
-          channelCount: 1,
-          sampleRate: 48000,
-          echoCancellation: currentPreferences.echoCancellation,
-          noiseSuppression: currentPreferences.noiseSuppression
+      const nativeNoise = isNativeNoiseReductionMode(currentPreferences.noiseReductionMode)
+      let stream: MediaStream | null = null
+      let context: AudioContext | null = null
+      let source: MediaStreamAudioSourceNode | null = null
+      let gain: GainNode | null = null
+      let destination: MediaStreamAudioDestinationNode | null = null
+      let noiseProcessor: AudioWorkletNode | null = null
+      let track: LocalAudioTrack | null = null
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: deviceId === 'default' ? undefined : { exact: deviceId },
+            channelCount: 1,
+            sampleRate: 48000,
+            echoCancellation: currentPreferences.echoCancellation,
+            noiseSuppression: currentPreferences.noiseReductionMode === 'webrtc'
+          }
+        })
+        context = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 })
+        await context.resume()
+        source = context.createMediaStreamSource(stream)
+        gain = context.createGain()
+        destination = context.createMediaStreamDestination()
+        if (nativeNoise) {
+          const nativePortPromise = new Promise<MessagePort>((resolve, reject) => {
+            const removePortListener = window.noiseReduction.onPort((port) => {
+              removePortListener()
+              resolve(port)
+            })
+            void window.noiseReduction
+              .start(currentPreferences.noiseReductionMode, currentPreferences.noiseReductionLevel)
+              .catch((error) => {
+                removePortListener()
+                reject(error)
+              })
+          })
+          noiseProcessor = await createNoiseProcessor(context, await nativePortPromise)
+          noiseProcessor.port.onmessage = (event) => {
+            if (event.data?.type === 'error') setError(event.data.message || '原生降噪 helper 运行失败')
+          }
+          source.connect(noiseProcessor)
+          noiseProcessor.connect(gain)
+        } else {
+          source.connect(gain)
         }
-      })
-      const context = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 })
-      await context.resume()
-      const source = context.createMediaStreamSource(stream)
-      const gain = context.createGain()
-      const destination = context.createMediaStreamDestination()
-      gain.gain.value = currentPreferences.inputVolume / 100
-      source.connect(gain)
-      gain.connect(destination)
-      const processedTrack = destination.stream.getAudioTracks()[0]
-      const track = new LocalAudioTrack(processedTrack, undefined, true, context)
-      await currentRoom.localParticipant.publishTrack(track, { source: Track.Source.Microphone })
-      localInputPipeline.current = { stream, context, source, gain, destination, track }
-      await startLocalSpeakingMonitor()
+        gain.gain.value = currentPreferences.inputVolume / 100
+        gain.connect(destination)
+        const processedTrack = destination.stream.getAudioTracks()[0]
+        if (!processedTrack) throw new Error('未创建处理后的麦克风轨道')
+        track = new LocalAudioTrack(processedTrack, undefined, true, context)
+        await currentRoom.localParticipant.publishTrack(track, { source: Track.Source.Microphone })
+        localInputPipeline.current = { stream, context, source, gain, destination, noiseProcessor, nativeNoise, track }
+        await startLocalSpeakingMonitor()
+      } catch (error) {
+        noiseProcessor?.disconnect()
+        source?.disconnect()
+        gain?.disconnect()
+        track?.stop()
+        stream?.getTracks().forEach((mediaTrack) => mediaTrack.stop())
+        if (context) await context.close().catch(() => {})
+        if (nativeNoise) await window.noiseReduction.stop().catch(() => {})
+        throw error
+      }
     },
     [startLocalSpeakingMonitor, stopLocalInputPipeline]
   )
@@ -581,7 +639,8 @@ const Home: React.FC = () => {
       const shouldRestartInput =
         patch.inputDeviceId !== undefined ||
         patch.echoCancellation !== undefined ||
-        patch.noiseSuppression !== undefined
+        patch.noiseReductionMode !== undefined ||
+        patch.noiseReductionLevel !== undefined
       if (shouldRestartInput) stopMicrophoneTest()
       if (shouldRestartInput && currentRoom) {
         try {
@@ -1235,12 +1294,14 @@ const Home: React.FC = () => {
           setSettingsOpen(false)
         }}
         devices={audioDevices}
+        platform={platform || noiseCapabilities?.platform || ''}
+        noiseCapabilities={noiseCapabilities}
         preferences={{
           inputDeviceId,
           outputDeviceId,
           inputVolume,
           outputVolume,
-          noiseSuppression,
+          noiseReductionMode,
           noiseReductionLevel,
           echoCancellation
         }}

@@ -25,6 +25,23 @@ contextBridge.exposeInMainWorld('voice', {
   requestToken: (request: { room: string; identity: string; name: string }) =>
     ipcRenderer.invoke('voice:token', request)
 })
+contextBridge.exposeInMainWorld('noiseReduction', {
+  /** 查询当前平台可用的降噪方案 */
+  getCapabilities: () => ipcRenderer.invoke('noise:capabilities'),
+  /** 启动原生降噪 helper */
+  start: (mode: string, strength: number) => ipcRenderer.invoke('noise:start', { mode, strength }),
+  /** 停止原生降噪 helper */
+  stop: () => ipcRenderer.invoke('noise:stop'),
+  /** 接收主进程转发给渲染进程的 PCM 端口 */
+  onPort: (callback: (port: MessagePort) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, _value: unknown, ports: MessagePort[]) => {
+      const port = ports[0]
+      if (port) callback(port)
+    }
+    ipcRenderer.on('noise:port', handler)
+    return () => ipcRenderer.removeListener('noise:port', handler)
+  }
+})
 // 应用更新相关
 contextBridge.exposeInMainWorld('appUpdate', {
   /** 获取当前应用版本 */
